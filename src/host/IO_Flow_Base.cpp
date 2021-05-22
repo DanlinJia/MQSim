@@ -252,6 +252,13 @@ IO_Flow_Base::IO_Flow_Base(const sim_object_id_type &name, uint16_t flow_id, LHA
 		available_command_ids.insert(cqe->Command_Identifier);
 		sim_time_type device_response_time = Simulator->Time() - request->Enqueue_time;
 		sim_time_type request_delay = Simulator->Time() - request->Arrival_time;
+		
+		std::ofstream myfile;
+		myfile.open ("response", std::ios::app);
+		//myfile << request_delay << " " << request_delay - cqe->trans_t - cqe->exec_t << "\n";
+
+		myfile << request->Arrival_time <<" "<<request_delay  << "\n";
+		myfile.close();
 		STAT_serviced_request_count++;
 		STAT_serviced_request_count_short_term++;
 
