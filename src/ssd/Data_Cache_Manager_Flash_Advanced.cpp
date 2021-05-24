@@ -271,6 +271,8 @@ namespace SSD_Components
 		unsigned int dram_write_size_in_sectors = 0;//The size of data written to DRAM (must be >= flash_written_back_write_size_in_sectors)
 		std::list<NVM_Transaction*>* evicted_cache_slots = new std::list<NVM_Transaction*>;
 		std::list<NVM_Transaction*> writeback_transactions;
+		sim_time_type execution_time = 0;
+		sim_time_type transfer_time = 0;
 		auto it = user_request->Transaction_list.begin();
 
 		int queue_id = user_request->Stream_id;
@@ -314,9 +316,13 @@ namespace SSD_Components
 				bloom_filter[user_request->Stream_id].insert(tr->LPA);
 				writeback_transactions.push_back(tr);
 			}
+			execution_time = tr->STAT_execution_time;
+			transfer_time = tr->STAT_transfer_time;
 			user_request->Transaction_list.erase(it++);
 		}
 		
+		// user_request->STAT_ExecutionTime += execution_time;
+		// user_request->STAT_TransferTime += transfer_time;
 		user_request->Sectors_serviced_from_cache += dram_write_size_in_sectors;//This is very important update. It is used to decide when all data sectors of a user request are serviced
 		back_pressure_buffer_depth[queue_id] += cache_eviction_read_size_in_sectors + flash_written_back_write_size_in_sectors;
 
