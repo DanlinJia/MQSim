@@ -4,6 +4,7 @@
 #include <cstdint>
 #include <string>
 #include "Host_Interface_NVMe_Priorities.h"
+#include "../sim/Sim_Defs.h"
 
 enum class HostInterface_Types { SATA, NVME };
 

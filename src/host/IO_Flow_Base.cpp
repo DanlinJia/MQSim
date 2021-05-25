@@ -258,6 +258,7 @@ IO_Flow_Base::IO_Flow_Base(const sim_object_id_type &name, uint16_t flow_id, LHA
 		//myfile << request_delay << " " << request_delay - cqe->trans_t - cqe->exec_t << "\n";
 
 		myfile << request->Arrival_time <<" "<<request_delay  << "\n";
+		// << " "<< request_delay  - cqe->STAT_TransferTime - cqe->STAT_ExecutionTime  << " " << cqe->STAT_TransferTime << " " << cqe->STAT_ExecutionTime << "\n";
 		myfile.close();
 		STAT_serviced_request_count++;
 		STAT_serviced_request_count_short_term++;

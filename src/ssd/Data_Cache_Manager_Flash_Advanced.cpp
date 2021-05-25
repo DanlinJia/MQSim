@@ -192,6 +192,8 @@ namespace SSD_Components
 		}
 
 		if (user_request->Type == UserRequestType::READ) {
+			// sim_time_type execution_time = 0;
+			// sim_time_type transfer_time = 0;
 			switch (caching_mode_per_input_stream[user_request->Stream_id]) {
 				case Caching_Mode::TURNED_OFF:
 					static_cast<FTL*>(nvm_firmware)->Address_Mapping_Unit->Translate_lpa_to_ppa_and_dispatch(user_request->Transaction_list);
@@ -203,10 +205,14 @@ namespace SSD_Components
 					std::list<NVM_Transaction*>::iterator it = user_request->Transaction_list.begin();
 					while (it != user_request->Transaction_list.end()) {
 						NVM_Transaction_Flash_RD* tr = (NVM_Transaction_Flash_RD*)(*it);
+						// execution_time+= tr->STAT_execution_time;
+						// transfer_time += tr->STAT_transfer_time;
 						if (per_stream_cache[tr->Stream_id]->Exists(tr->Stream_id, tr->LPA)) {
 							page_status_type available_sectors_bitmap = per_stream_cache[tr->Stream_id]->Get_slot(tr->Stream_id, tr->LPA).State_bitmap_of_existing_sectors & tr->read_sectors_bitmap;
 							if (available_sectors_bitmap == tr->read_sectors_bitmap) {
 								user_request->Sectors_serviced_from_cache += count_sector_no_from_status_bitmap(tr->read_sectors_bitmap);
+								// user_request->STAT_ExecutionTime = execution_time;
+								// user_request->STAT_TransferTime = transfer_time;
 								user_request->Transaction_list.erase(it++);//the ++ operation should happen here, otherwise the iterator will be part of the list after erasing it from the list
 							} else if (available_sectors_bitmap != 0) {
 								user_request->Sectors_serviced_from_cache += count_sector_no_from_status_bitmap(available_sectors_bitmap);
@@ -271,8 +277,8 @@ namespace SSD_Components
 		unsigned int dram_write_size_in_sectors = 0;//The size of data written to DRAM (must be >= flash_written_back_write_size_in_sectors)
 		std::list<NVM_Transaction*>* evicted_cache_slots = new std::list<NVM_Transaction*>;
 		std::list<NVM_Transaction*> writeback_transactions;
-		sim_time_type execution_time = 0;
-		sim_time_type transfer_time = 0;
+		// sim_time_type execution_time = 0;
+		// sim_time_type transfer_time = 0;
 		auto it = user_request->Transaction_list.begin();
 
 		int queue_id = user_request->Stream_id;
@@ -316,13 +322,13 @@ namespace SSD_Components
 				bloom_filter[user_request->Stream_id].insert(tr->LPA);
 				writeback_transactions.push_back(tr);
 			}
-			execution_time = tr->STAT_execution_time;
-			transfer_time = tr->STAT_transfer_time;
+			// execution_time += tr->STAT_execution_time;
+			// transfer_time += tr->STAT_transfer_time;
 			user_request->Transaction_list.erase(it++);
 		}
 		
-		// user_request->STAT_ExecutionTime += execution_time;
-		// user_request->STAT_TransferTime += transfer_time;
+		// user_request->STAT_ExecutionTime = execution_time;
+		// user_request->STAT_TransferTime = transfer_time;
 		user_request->Sectors_serviced_from_cache += dram_write_size_in_sectors;//This is very important update. It is used to decide when all data sectors of a user request are serviced
 		back_pressure_buffer_depth[queue_id] += cache_eviction_read_size_in_sectors + flash_written_back_write_size_in_sectors;
 
