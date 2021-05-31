@@ -103,7 +103,7 @@ namespace SSD_Components
 		myfile.open ("waiting", std::ios::app);
 		//myfile << request_delay << " " << request_delay - cqe->trans_t - cqe->exec_t << "\n";
 
-		myfile << transaction->Issue_time <<" "<< transaction->STAT_execution_time<< " " << transaction->STAT_transfer_time << " "<< (Simulator->Time() - transaction->Issue_time) - transaction->STAT_execution_time - transaction->STAT_transfer_time << " " << (Simulator->Time() - transaction->Issue_time) <<  "\n";
+		myfile << transaction->Issue_time <<" "<< (int)transaction->Type << " "<< transaction->STAT_execution_time<< " " << transaction->STAT_transfer_time << " "<< (Simulator->Time() - transaction->Issue_time) - transaction->STAT_execution_time - transaction->STAT_transfer_time << " " << (Simulator->Time() - transaction->Issue_time) <<  "\n";
 		myfile.close();
 		switch (transaction->Type)
 		{
