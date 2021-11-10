@@ -41,6 +41,13 @@ inline void Input_Stream_Manager_NVMe::Submission_queue_tail_pointer_update(stre
 {
 	((Input_Stream_NVMe *)input_streams[stream_id])->Submission_tail = tail_pointer_value;
 
+	std::ofstream myfile;
+	myfile.open ("sq_tail_tracker", std::ios::app);
+	myfile << "stream id: " << stream_id << " sq head: " << ((Input_Stream_NVMe *)input_streams[stream_id])->Submission_head <<
+	" sq tail: "<< ((Input_Stream_NVMe *)input_streams[stream_id])->Submission_tail << " on the fly: " << ((Input_Stream_NVMe *)input_streams[stream_id])->On_the_fly_requests <<
+		" "  << Simulator->Time()<<"\n";
+	myfile.close();
+
 	if (((Input_Stream_NVMe *)input_streams[stream_id])->On_the_fly_requests < Queue_fetch_size)
 	{
 		((Host_Interface_NVMe *)host_interface)->request_fetch_unit->Fetch_next_request(stream_id);
@@ -108,7 +115,13 @@ inline void Input_Stream_Manager_NVMe::Handle_serviced_request(User_Request *req
 	{
 		((Host_Interface_NVMe *)host_interface)->request_fetch_unit->Send_read_data(request);
 	}
-
+		std::ofstream myfile;
+		myfile.open ("sq_tracker", std::ios::app);
+		myfile << "stream id: " << stream_id << " sq head: " << ((Input_Stream_NVMe *)input_streams[stream_id])->Submission_head <<
+		" sq tail: "<< ((Input_Stream_NVMe *)input_streams[stream_id])->Submission_tail << " on the fly: " << ((Input_Stream_NVMe *)input_streams[stream_id])->On_the_fly_requests <<
+		 " "  << Simulator->Time()<<"\n";
+		myfile.close();
+		
 	//there are waiting requests in the submission queue but have not been fetched, due to Queue_fetch_size limit
 	if (((Input_Stream_NVMe *)input_streams[stream_id])->Submission_head != ((Input_Stream_NVMe *)input_streams[stream_id])->Submission_tail)
 	{
