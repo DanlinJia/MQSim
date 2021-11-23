@@ -19,13 +19,19 @@
 
 namespace Host_Components
 {
-	struct NVMe_Queue_Pair
+	struct NVMe_SQ
 	{
 		uint16_t Submission_queue_head;
 		uint16_t Submission_queue_tail;
 		uint16_t Submission_queue_size;
 		uint64_t Submission_tail_register_address_on_device;
 		uint64_t Submission_queue_memory_base_address;
+	};
+
+	struct NVMe_Queue_Pair
+	{
+		NVMe_SQ Write_sq;
+		NVMe_SQ Read_sq;
 		uint16_t Completion_queue_head;
 		uint16_t Completion_queue_tail;
 		uint16_t Completion_queue_size;
@@ -87,7 +93,8 @@ namespace Host_Components
 		uint16_t nvme_submission_queue_size;
 		uint16_t nvme_completion_queue_size;
 		std::set<uint16_t> available_command_ids;
-		std::vector<Host_IO_Request*> request_queue_in_memory;
+		std::vector<Host_IO_Request*> read_request_queue_in_memory;
+		std::vector<Host_IO_Request*> write_request_queue_in_memory;
 		std::list<Host_IO_Request*> waiting_requests;//The I/O requests that are still waiting to be enqueued in the I/O queue (the I/O queue is full)
 		std::unordered_map<sim_time_type, Host_IO_Request*> nvme_software_request_queue;//The I/O requests that are enqueued in the I/O queue of the SSD device
 		void NVMe_update_and_submit_completion_queue_tail();

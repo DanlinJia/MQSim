@@ -34,11 +34,15 @@ IO_Flow_Base::IO_Flow_Base(const sim_object_id_type &name, uint16_t flow_id, LHA
 		}
 		for (uint16_t cmdid = 0; cmdid < nvme_submission_queue_size; cmdid++)
 		{
-			request_queue_in_memory.push_back(t);
+			read_request_queue_in_memory.push_back(t);
+			write_request_queue_in_memory.push_back(t);
 		}
-		nvme_queue_pair.Submission_queue_size = nvme_submission_queue_size;
-		nvme_queue_pair.Submission_queue_head = 0;
-		nvme_queue_pair.Submission_queue_tail = 0;
+		nvme_queue_pair.Write_sq.Submission_queue_size = nvme_submission_queue_size;
+		nvme_queue_pair.Write_sq.Submission_queue_head = 0;
+		nvme_queue_pair.Write_sq.Submission_queue_tail = 0;
+		nvme_queue_pair.Read_sq.Submission_queue_size = nvme_submission_queue_size;
+		nvme_queue_pair.Read_sq.Submission_queue_head = 0;
+		nvme_queue_pair.Read_sq.Submission_queue_tail = 0;
 		nvme_queue_pair.Completion_queue_size = nvme_completion_queue_size;
 		nvme_queue_pair.Completion_queue_head = 0;
 		nvme_queue_pair.Completion_queue_tail = 0;
@@ -55,50 +59,66 @@ IO_Flow_Base::IO_Flow_Base(const sim_object_id_type &name, uint16_t flow_id, LHA
 			nvme_queue_pair.Completion_queue_memory_base_address = COMPLETION_QUEUE_REGISTER_0;
 			break;
 		case 1:
-			nvme_queue_pair.Submission_queue_memory_base_address = SUBMISSION_QUEUE_MEMORY_1;
-			nvme_queue_pair.Submission_tail_register_address_on_device = SUBMISSION_QUEUE_REGISTER_1;
+			nvme_queue_pair.Read_sq.Submission_queue_memory_base_address = SUBMISSION_QUEUE_MEMORY_1;
+			nvme_queue_pair.Write_sq.Submission_queue_memory_base_address = SUBMISSION_QUEUE_MEMORY_1 << 0x10;
+			nvme_queue_pair.Read_sq.Submission_tail_register_address_on_device = SUBMISSION_QUEUE_REGISTER_1;
+			nvme_queue_pair.Write_sq.Submission_tail_register_address_on_device = SUBMISSION_QUEUE_REGISTER_1 + 0x0100;
 			nvme_queue_pair.Completion_queue_memory_base_address = COMPLETION_QUEUE_MEMORY_1;
 			nvme_queue_pair.Completion_head_register_address_on_device = COMPLETION_QUEUE_REGISTER_1;
 			break;
 		case 2:
-			nvme_queue_pair.Submission_queue_memory_base_address = SUBMISSION_QUEUE_MEMORY_2;
-			nvme_queue_pair.Submission_tail_register_address_on_device = SUBMISSION_QUEUE_REGISTER_2;
+			nvme_queue_pair.Read_sq.Submission_queue_memory_base_address = SUBMISSION_QUEUE_MEMORY_2;
+			nvme_queue_pair.Write_sq.Submission_queue_memory_base_address = SUBMISSION_QUEUE_MEMORY_2 << 0x10;
+			nvme_queue_pair.Read_sq.Submission_tail_register_address_on_device = SUBMISSION_QUEUE_REGISTER_2;
+			nvme_queue_pair.Write_sq.Submission_tail_register_address_on_device = SUBMISSION_QUEUE_REGISTER_2 + 0x0100;
 			nvme_queue_pair.Completion_queue_memory_base_address = COMPLETION_QUEUE_MEMORY_2;
 			nvme_queue_pair.Completion_head_register_address_on_device = COMPLETION_QUEUE_REGISTER_2;
 			break;
 		case 3:
-			nvme_queue_pair.Submission_queue_memory_base_address = SUBMISSION_QUEUE_MEMORY_3;
-			nvme_queue_pair.Submission_tail_register_address_on_device = SUBMISSION_QUEUE_REGISTER_3;
+			nvme_queue_pair.Read_sq.Submission_queue_memory_base_address = SUBMISSION_QUEUE_MEMORY_3;
+			nvme_queue_pair.Write_sq.Submission_queue_memory_base_address = SUBMISSION_QUEUE_MEMORY_3 << 0x10;
+			nvme_queue_pair.Read_sq.Submission_tail_register_address_on_device = SUBMISSION_QUEUE_REGISTER_3;
+			nvme_queue_pair.Write_sq.Submission_tail_register_address_on_device = SUBMISSION_QUEUE_REGISTER_3 + 0x0100;
 			nvme_queue_pair.Completion_queue_memory_base_address = COMPLETION_QUEUE_MEMORY_3;
 			nvme_queue_pair.Completion_head_register_address_on_device = COMPLETION_QUEUE_REGISTER_3;
 			break;
 		case 4:
-			nvme_queue_pair.Submission_queue_memory_base_address = SUBMISSION_QUEUE_MEMORY_4;
-			nvme_queue_pair.Submission_tail_register_address_on_device = SUBMISSION_QUEUE_REGISTER_4;
+			nvme_queue_pair.Read_sq.Submission_queue_memory_base_address = SUBMISSION_QUEUE_MEMORY_4;
+			nvme_queue_pair.Write_sq.Submission_queue_memory_base_address = SUBMISSION_QUEUE_MEMORY_4 << 0x10;
+			nvme_queue_pair.Read_sq.Submission_tail_register_address_on_device = SUBMISSION_QUEUE_REGISTER_4;
+			nvme_queue_pair.Write_sq.Submission_tail_register_address_on_device = SUBMISSION_QUEUE_REGISTER_4 + 0x0100;
 			nvme_queue_pair.Completion_queue_memory_base_address = COMPLETION_QUEUE_MEMORY_4;
 			nvme_queue_pair.Completion_head_register_address_on_device = COMPLETION_QUEUE_REGISTER_4;
 			break;
 		case 5:
-			nvme_queue_pair.Submission_queue_memory_base_address = SUBMISSION_QUEUE_MEMORY_5;
-			nvme_queue_pair.Submission_tail_register_address_on_device = SUBMISSION_QUEUE_REGISTER_5;
+			nvme_queue_pair.Read_sq.Submission_queue_memory_base_address = SUBMISSION_QUEUE_MEMORY_5;
+			nvme_queue_pair.Write_sq.Submission_queue_memory_base_address = SUBMISSION_QUEUE_MEMORY_5 << 0x10;
+			nvme_queue_pair.Read_sq.Submission_tail_register_address_on_device = SUBMISSION_QUEUE_REGISTER_5;
+			nvme_queue_pair.Write_sq.Submission_tail_register_address_on_device = SUBMISSION_QUEUE_REGISTER_5 + 0x0100;
 			nvme_queue_pair.Completion_queue_memory_base_address = COMPLETION_QUEUE_MEMORY_5;
 			nvme_queue_pair.Completion_head_register_address_on_device = COMPLETION_QUEUE_REGISTER_5;
 			break;
 		case 6:
-			nvme_queue_pair.Submission_queue_memory_base_address = SUBMISSION_QUEUE_MEMORY_6;
-			nvme_queue_pair.Submission_tail_register_address_on_device = SUBMISSION_QUEUE_REGISTER_6;
+			nvme_queue_pair.Read_sq.Submission_queue_memory_base_address = SUBMISSION_QUEUE_MEMORY_6;
+			nvme_queue_pair.Write_sq.Submission_queue_memory_base_address = SUBMISSION_QUEUE_MEMORY_6 << 0x10;
+			nvme_queue_pair.Read_sq.Submission_tail_register_address_on_device = SUBMISSION_QUEUE_REGISTER_6;
+			nvme_queue_pair.Write_sq.Submission_tail_register_address_on_device = SUBMISSION_QUEUE_REGISTER_6 + 0x0100;
 			nvme_queue_pair.Completion_queue_memory_base_address = COMPLETION_QUEUE_MEMORY_6;
 			nvme_queue_pair.Completion_head_register_address_on_device = COMPLETION_QUEUE_REGISTER_6;
 			break;
 		case 7:
-			nvme_queue_pair.Submission_queue_memory_base_address = SUBMISSION_QUEUE_MEMORY_7;
-			nvme_queue_pair.Submission_tail_register_address_on_device = SUBMISSION_QUEUE_REGISTER_7;
+			nvme_queue_pair.Read_sq.Submission_queue_memory_base_address = SUBMISSION_QUEUE_MEMORY_7;
+			nvme_queue_pair.Write_sq.Submission_queue_memory_base_address = SUBMISSION_QUEUE_MEMORY_7 << 0x10;
+			nvme_queue_pair.Read_sq.Submission_tail_register_address_on_device = SUBMISSION_QUEUE_REGISTER_7;
+			nvme_queue_pair.Write_sq.Submission_tail_register_address_on_device = SUBMISSION_QUEUE_REGISTER_7 + 0x0100;
 			nvme_queue_pair.Completion_queue_memory_base_address = COMPLETION_QUEUE_MEMORY_7;
 			nvme_queue_pair.Completion_head_register_address_on_device = COMPLETION_QUEUE_REGISTER_7;
 			break;
 		case 8:
-			nvme_queue_pair.Submission_queue_memory_base_address = SUBMISSION_QUEUE_MEMORY_8;
-			nvme_queue_pair.Submission_tail_register_address_on_device = SUBMISSION_QUEUE_REGISTER_8;
+			nvme_queue_pair.Read_sq.Submission_queue_memory_base_address = SUBMISSION_QUEUE_MEMORY_8;
+			nvme_queue_pair.Write_sq.Submission_queue_memory_base_address = SUBMISSION_QUEUE_MEMORY_8 << 0x10;
+			nvme_queue_pair.Read_sq.Submission_tail_register_address_on_device = SUBMISSION_QUEUE_REGISTER_8;
+			nvme_queue_pair.Write_sq.Submission_tail_register_address_on_device = SUBMISSION_QUEUE_REGISTER_8 + 0x0100;
 			nvme_queue_pair.Completion_queue_memory_base_address = COMPLETION_QUEUE_MEMORY_8;
 			nvme_queue_pair.Completion_head_register_address_on_device = COMPLETION_QUEUE_REGISTER_8;
 			break;
@@ -280,7 +300,7 @@ IO_Flow_Base::IO_Flow_Base(const sim_object_id_type &name, uint16_t flow_id, LHA
 			STAT_min_request_delay = request_delay;
 		}
 		STAT_transferred_bytes_total += request->LBA_count * SECTOR_SIZE_IN_BYTE;
-		
+		bool Q_Full;
 		if (request->Type == Host_IO_Request_Type::READ) {
 			STAT_serviced_read_request_count++;
 			STAT_sum_device_response_time_read += device_response_time;
@@ -319,29 +339,53 @@ IO_Flow_Base::IO_Flow_Base(const sim_object_id_type &name, uint16_t flow_id, LHA
 
 		delete request;
 
-		nvme_queue_pair.Submission_queue_head = cqe->SQ_Head;
+		request->Type == Host_IO_Request_Type::READ ?
+			nvme_queue_pair.Read_sq.Submission_queue_head = cqe->SQ_Head
+			: nvme_queue_pair.Write_sq.Submission_queue_head = cqe->SQ_Head;
 		
 		//MQSim always assumes that the request is processed correctly, so no need to check cqe->SF_P
 
 		//If the submission queue is not full anymore, then enqueue waiting requests
 		while(waiting_requests.size() > 0) {
-			if (!NVME_SQ_FULL(nvme_queue_pair) && available_command_ids.size() > 0) {
-				Host_IO_Request* new_req = waiting_requests.front();
-				waiting_requests.pop_front();
-				if (nvme_software_request_queue[*available_command_ids.begin()] != NULL) {
-					PRINT_ERROR("Unexpteced situation in IO_Flow_Base! Overwriting a waiting I/O request in the queue!")
+			Host_IO_Request* new_req = waiting_requests.front();
+			if (new_req->Type == Host_IO_Request_Type::READ) {
+				if (!NVME_SQ_FULL(nvme_queue_pair.Read_sq) && available_command_ids.size() > 0) {
+					waiting_requests.pop_front();
+					if (nvme_software_request_queue[*available_command_ids.begin()] != NULL) {
+						PRINT_ERROR("Unexpteced situation in IO_Flow_Base! Overwriting a waiting I/O request in the queue!")
+					} else {
+						new_req->IO_queue_info = *available_command_ids.begin();
+						nvme_software_request_queue[*available_command_ids.begin()] = new_req;
+						available_command_ids.erase(available_command_ids.begin());
+						read_request_queue_in_memory[nvme_queue_pair.Read_sq.Submission_queue_tail] = new_req;
+						NVME_UPDATE_SQ_TAIL(nvme_queue_pair.Read_sq);
+					}
+					new_req->Enqueue_time = Simulator->Time();
+					pcie_root_complex->Write_to_device(nvme_queue_pair.Read_sq.Submission_tail_register_address_on_device, 
+					nvme_queue_pair.Read_sq.Submission_queue_tail);//Based on NVMe protocol definition, the updated tail pointer should be informed to the device
 				} else {
-					new_req->IO_queue_info = *available_command_ids.begin();
-					nvme_software_request_queue[*available_command_ids.begin()] = new_req;
-					available_command_ids.erase(available_command_ids.begin());
-					request_queue_in_memory[nvme_queue_pair.Submission_queue_tail] = new_req;
-					NVME_UPDATE_SQ_TAIL(nvme_queue_pair);
+					break;
 				}
-				new_req->Enqueue_time = Simulator->Time();
-				pcie_root_complex->Write_to_device(nvme_queue_pair.Submission_tail_register_address_on_device, nvme_queue_pair.Submission_queue_tail);//Based on NVMe protocol definition, the updated tail pointer should be informed to the device
-			} else {
-				break;
+			} else if (new_req->Type == Host_IO_Request_Type::WRITE) {
+				if (!NVME_SQ_FULL(nvme_queue_pair.Write_sq) && available_command_ids.size() > 0) {
+					waiting_requests.pop_front();
+					if (nvme_software_request_queue[*available_command_ids.begin()] != NULL) {
+						PRINT_ERROR("Unexpteced situation in IO_Flow_Base! Overwriting a waiting I/O request in the queue!")
+					} else {
+						new_req->IO_queue_info = *available_command_ids.begin();
+						nvme_software_request_queue[*available_command_ids.begin()] = new_req;
+						available_command_ids.erase(available_command_ids.begin());
+						write_request_queue_in_memory[nvme_queue_pair.Write_sq.Submission_queue_tail] = new_req;
+						NVME_UPDATE_SQ_TAIL(nvme_queue_pair.Write_sq);
+					}
+					new_req->Enqueue_time = Simulator->Time();
+					pcie_root_complex->Write_to_device(nvme_queue_pair.Write_sq.Submission_tail_register_address_on_device, 
+					nvme_queue_pair.Write_sq.Submission_queue_tail);//Based on NVMe protocol definition, the updated tail pointer should be informed to the device
+				} else {
+					break;
+				}
 			}
+			
 		}
 
 		delete cqe;
@@ -384,8 +428,11 @@ IO_Flow_Base::IO_Flow_Base(const sim_object_id_type &name, uint16_t flow_id, LHA
 	Submission_Queue_Entry* IO_Flow_Base::NVMe_read_sqe(uint64_t address)
 	{
 		Submission_Queue_Entry* sqe = new Submission_Queue_Entry;
-		Host_IO_Request* request = request_queue_in_memory[(uint16_t)((address - nvme_queue_pair.Submission_queue_memory_base_address) / sizeof(Submission_Queue_Entry))];
-		
+		Host_IO_Request* request = NULL;
+		address - nvme_queue_pair.Write_sq.Submission_queue_memory_base_address < 0 ?
+			request = read_request_queue_in_memory[(uint16_t)((address - nvme_queue_pair.Read_sq.Submission_queue_memory_base_address) / sizeof(Submission_Queue_Entry))]
+			: request = write_request_queue_in_memory[(uint16_t)((address - nvme_queue_pair.Write_sq.Submission_queue_memory_base_address) / sizeof(Submission_Queue_Entry))];
+
 		if (request == NULL) {
 			throw std::invalid_argument(this->ID() + ": Request to access a submission queue entry that does not exist.");
 		}
@@ -415,7 +462,13 @@ IO_Flow_Base::IO_Flow_Base(const sim_object_id_type &name, uint16_t flow_id, LHA
 		switch (SSD_device_type) {
 			case HostInterface_Types::NVME:
 				//If either of software or hardware queue is full
-				if (NVME_SQ_FULL(nvme_queue_pair) || available_command_ids.size() == 0) {
+				bool Q_Full;
+				if (request->Type==Host_IO_Request_Type::READ) {
+					Q_Full = NVME_SQ_FULL(nvme_queue_pair.Read_sq);
+				} else {
+					Q_Full = NVME_SQ_FULL(nvme_queue_pair.Write_sq);
+				}
+				if (Q_Full || available_command_ids.size() == 0) {
 					waiting_requests.push_back(request);
 					std::ofstream myfile;
 					myfile.open ("io_generator_tracker", std::ios::app);
@@ -428,16 +481,31 @@ IO_Flow_Base::IO_Flow_Base(const sim_object_id_type &name, uint16_t flow_id, LHA
 						request->IO_queue_info = *available_command_ids.begin();
 						nvme_software_request_queue[*available_command_ids.begin()] = request;
 						available_command_ids.erase(available_command_ids.begin());
-						request_queue_in_memory[nvme_queue_pair.Submission_queue_tail] = request;
-						NVME_UPDATE_SQ_TAIL(nvme_queue_pair);
+						if (request->Type==Host_IO_Request_Type::READ) {
+							read_request_queue_in_memory[nvme_queue_pair.Read_sq.Submission_queue_tail] = request;
+							NVME_UPDATE_SQ_TAIL(nvme_queue_pair.Read_sq);	
+						} else {
+							read_request_queue_in_memory[nvme_queue_pair.Write_sq.Submission_queue_tail] = request;
+							NVME_UPDATE_SQ_TAIL(nvme_queue_pair.Write_sq);	
+						}
+
 						std::ofstream myfile;
 						myfile.open ("queue_tracker", std::ios::app);
-						myfile << "sq head: "<< nvme_queue_pair.Submission_queue_head <<
-						" sq tail: "<< nvme_queue_pair.Submission_queue_tail << " " << Simulator->Time()<<"\n";
+						myfile << "read sq head: "<< nvme_queue_pair.Read_sq.Submission_queue_head <<
+						" read sq tail: "<< nvme_queue_pair.Read_sq.Submission_queue_tail << 
+						"write sq head: "<< nvme_queue_pair.Write_sq.Submission_queue_head <<
+						" write sq tail: "<< nvme_queue_pair.Write_sq.Submission_queue_tail << 
+						" " << Simulator->Time()<<"\n";
 						myfile.close();
 					}
 					request->Enqueue_time = Simulator->Time();
-					pcie_root_complex->Write_to_device(nvme_queue_pair.Submission_tail_register_address_on_device, nvme_queue_pair.Submission_queue_tail);//Based on NVMe protocol definition, the updated tail pointer should be informed to the device
+					if (request->Type==Host_IO_Request_Type::READ) {
+						pcie_root_complex->Write_to_device(nvme_queue_pair.Read_sq.Submission_tail_register_address_on_device, 
+						nvme_queue_pair.Read_sq.Submission_queue_tail);//Based on NVMe protocol definition, the updated tail pointer should be informed to the device
+					} else {
+						pcie_root_complex->Write_to_device(nvme_queue_pair.Write_sq.Submission_tail_register_address_on_device, 
+						nvme_queue_pair.Write_sq.Submission_queue_tail);//Based on NVMe protocol definition, the updated tail pointer should be informed to the device
+					}
 				}
 
 				break;
