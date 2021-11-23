@@ -116,10 +116,12 @@ void Host_System::Start_simulation()
 	switch (ssd_device->Host_interface->GetType()) {
 		case HostInterface_Types::NVME:
 			for (uint16_t flow_cntr = 0; flow_cntr < IO_flows.size(); flow_cntr++) {
+				uint64_t read_submission_queue_memory_base_address = IO_flows[flow_cntr]->Get_nvme_queue_pair_info()->Read_sq.Submission_queue_memory_base_address;
+				uint64_t write_submission_queue_memory_base_address = IO_flows[flow_cntr]->Get_nvme_queue_pair_info()->Write_sq.Submission_queue_memory_base_address;
 				((SSD_Components::Host_Interface_NVMe*) ssd_device->Host_interface)->Create_new_stream(
 					IO_flows[flow_cntr]->Priority_class(),
 					IO_flows[flow_cntr]->Get_start_lsa_on_device(), IO_flows[flow_cntr]->Get_end_lsa_address_on_device(),
-					IO_flows[flow_cntr]->Get_nvme_queue_pair_info()->Submission_queue_memory_base_address, IO_flows[flow_cntr]->Get_nvme_queue_pair_info()->Completion_queue_memory_base_address);
+					read_submission_queue_memory_base_address, write_submission_queue_memory_base_address, IO_flows[flow_cntr]->Get_nvme_queue_pair_info()->Completion_queue_memory_base_address);
 			}
 			break;
 		case HostInterface_Types::SATA:

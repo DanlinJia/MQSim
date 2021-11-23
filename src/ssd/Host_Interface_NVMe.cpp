@@ -239,6 +239,9 @@ void Request_Fetch_Unit_NVMe::Process_pcie_write_message(uint64_t address, void 
 	case SUBMISSION_QUEUE_REGISTER_1:
 		((Input_Stream_Manager_NVMe *)(hi->input_stream_manager))->Submission_queue_tail_pointer_update(0, (uint16_t)val);
 		break;
+	case SUBMISSION_QUEUE_REGISTER_1 + 0X0100:
+		((Input_Stream_Manager_NVMe *)(hi->input_stream_manager))->Submission_queue_tail_pointer_update(0, (uint16_t)val);
+		break;
 	case COMPLETION_QUEUE_REGISTER_1:
 		((Input_Stream_Manager_NVMe *)(hi->input_stream_manager))->Completion_queue_head_pointer_update(0, (uint16_t)val);
 		break;
@@ -401,9 +404,9 @@ Host_Interface_NVMe::Host_Interface_NVMe(const sim_object_id_type &id,
 }
 
 stream_id_type Host_Interface_NVMe::Create_new_stream(IO_Flow_Priority_Class::Priority priority_class, LHA_type start_logical_sector_address, LHA_type end_logical_sector_address,
-													  uint64_t submission_queue_base_address, uint64_t completion_queue_base_address)
+													  uint64_t read_submission_queue_base_address, uint64_t write_submission_queue_base_address, uint64_t completion_queue_base_address)
 {
-	return ((Input_Stream_Manager_NVMe *)input_stream_manager)->Create_new_stream(priority_class, start_logical_sector_address, end_logical_sector_address, submission_queue_base_address, submission_queue_depth, completion_queue_base_address, completion_queue_depth);
+	return ((Input_Stream_Manager_NVMe *)input_stream_manager)->Create_new_stream(priority_class, start_logical_sector_address, end_logical_sector_address, read_submission_queue_base_address, write_submission_queue_base_address, submission_queue_depth, completion_queue_base_address, completion_queue_depth);
 }
 
 void Host_Interface_NVMe::Validate_simulation_config()

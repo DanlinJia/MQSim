@@ -11,6 +11,17 @@
 
 namespace SSD_Components
 {
+struct Host_Interface_NVMe_Queue
+{	
+	Host_Interface_NVMe_Queue(uint64_t submission_queue_base_address, uint16_t submission_queue_size, int submission_head, int submission_tail)
+	: Submission_queue_base_address{submission_queue_base_address}, Submission_queue_size{submission_queue_size}, Submission_head{submission_head}, Submission_head_informed_to_host{submission_head}, Submission_tail{submission_tail} {}
+	uint64_t Submission_queue_base_address;
+	uint16_t Submission_queue_size;
+	uint16_t Submission_head;
+	uint16_t Submission_head_informed_to_host; //To avoide race condition, the submission head must not be informed to host until the request info of the head is successfully arrived
+	uint16_t Submission_tail;
+};
+
 class Input_Stream_NVMe : public Input_Stream_Base
 {
 public:
@@ -19,20 +30,18 @@ public:
 					  uint64_t completion_queue_base_address, uint16_t completion_queue_size) : Input_Stream_Base(),
 																								Priority_class(priority_class),
 																								Start_logical_sector_address(start_logical_sector_address), End_logical_sector_address(end_logical_sector_address),
-																								Submission_queue_base_address(submission_queue_base_address), Submission_queue_size(submission_queue_size),
+																								Read_queue(Host_Interface_NVMe_Queue(submission_queue_base_address, submission_queue_size, 0, 0)),
+																								Write_queue(Host_Interface_NVMe_Queue(submission_queue_base_address, submission_queue_size, 0, 0)),
 																								Completion_queue_base_address(completion_queue_base_address), Completion_queue_size(completion_queue_size),
-																								Submission_head(0), Submission_head_informed_to_host(0), Submission_tail(0), Completion_head(0), Completion_tail(0), On_the_fly_requests(0) {}
+																								Completion_head(0), Completion_tail(0), On_the_fly_requests(0) {}
 	~Input_Stream_NVMe();
 	IO_Flow_Priority_Class::Priority Priority_class;
 	LHA_type Start_logical_sector_address;
 	LHA_type End_logical_sector_address;
-	uint64_t Submission_queue_base_address;
-	uint16_t Submission_queue_size;
+	Host_Interface_NVMe_Queue Read_queue;
+	Host_Interface_NVMe_Queue Write_queue;
 	uint64_t Completion_queue_base_address;
 	uint16_t Completion_queue_size;
-	uint16_t Submission_head;
-	uint16_t Submission_head_informed_to_host; //To avoide race condition, the submission head must not be informed to host until the request info of the head is successfully arrived
-	uint16_t Submission_tail;
 	uint16_t Completion_head;
 	uint16_t Completion_tail;
 	std::list<User_Request *> Waiting_user_requests;		//The list of requests that have been fetch to the device queue and are getting serviced
@@ -89,7 +98,7 @@ public:
 						uint16_t submission_queue_depth, uint16_t completion_queue_depth,
 						unsigned int no_of_input_streams, uint16_t queue_fetch_size, unsigned int sectors_per_page, Data_Cache_Manager_Base *cache);
 	stream_id_type Create_new_stream(IO_Flow_Priority_Class::Priority priority_class, LHA_type start_logical_sector_address, LHA_type end_logical_sector_address,
-									 uint64_t submission_queue_base_address, uint64_t completion_queue_base_address);
+									 uint64_t read_submission_queue_base_address, uint64_t write_submission_queue_base_address, uint64_t completion_queue_base_address);
 	void Start_simulation();
 	void Validate_simulation_config();
 	void Execute_simulator_event(MQSimEngine::Sim_Event *);

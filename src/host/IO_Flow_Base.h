@@ -42,7 +42,7 @@ namespace Host_Components
 #define NVME_SQ_FULL(Q) (Q.Submission_queue_tail < Q.Submission_queue_size - 1 ? Q.Submission_queue_tail + 1 == Q.Submission_queue_head : Q.Submission_queue_head == 0)
 #define NVME_UPDATE_SQ_TAIL(Q)  Q.Submission_queue_tail++;\
 						if (Q.Submission_queue_tail == Q.Submission_queue_size)\
-							nvme_queue_pair.Submission_queue_tail = 0;
+							Q.Submission_queue_tail = 0;
 
 	class PCIe_Root_Complex;
 	class IO_Flow_Base : public MQSimEngine::Sim_Object, public MQSimEngine::Sim_Reporter
