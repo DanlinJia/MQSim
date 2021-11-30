@@ -58,7 +58,8 @@ public:
 	stream_id_type Create_new_stream(IO_Flow_Priority_Class::Priority priority_class, LHA_type start_logical_sector_address, LHA_type end_logical_sector_address,
 									 uint64_t submission_queue_base_address, uint16_t submission_queue_size,
 									 uint64_t completion_queue_base_address, uint16_t completion_queue_size);
-	void Submission_queue_tail_pointer_update(stream_id_type stream_id, uint16_t tail_pointer_value);
+	void Write_submission_queue_tail_pointer_update(stream_id_type stream_id, uint16_t tail_pointer_value);	
+	void Read_submission_queue_tail_pointer_update(stream_id_type stream_id, uint16_t tail_pointer_value);
 	void Completion_queue_head_pointer_update(stream_id_type stream_id, uint16_t head_pointer_value);
 	void Handle_new_arrived_request(User_Request *request);
 	void Handle_arrived_write_data(User_Request *request);
@@ -82,10 +83,15 @@ public:
 	void Send_completion_queue_element(User_Request *request, uint16_t sq_head_value);
 	void Process_pcie_write_message(uint64_t, void *, unsigned int);
 	void Process_pcie_read_message(uint64_t, void *, unsigned int);
+	void Set_queue_token(uint8_t read_token, uint8_t write_token);
+	uint8_t read_token;
+	uint8_t write_token;
 
 private:
 	uint16_t current_phase;
 	uint32_t number_of_sent_cqe;
+	uint8_t read_queue_token;
+	uint8_t write_queue_token;
 };
 
 class Host_Interface_NVMe : public Host_Interface_Base

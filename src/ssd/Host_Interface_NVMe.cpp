@@ -37,14 +37,14 @@ stream_id_type Input_Stream_Manager_NVMe::Create_new_stream(IO_Flow_Priority_Cla
 	return (stream_id_type)(this->input_streams.size() - 1);
 }
 
-inline void Input_Stream_Manager_NVMe::Submission_queue_tail_pointer_update(stream_id_type stream_id, uint16_t tail_pointer_value)
+inline void Input_Stream_Manager_NVMe::Read_submission_queue_tail_pointer_update(stream_id_type stream_id, uint16_t tail_pointer_value)
 {
-	((Input_Stream_NVMe *)input_streams[stream_id])->Submission_tail = tail_pointer_value;
+	((Input_Stream_NVMe *)input_streams[stream_id])->Read_queue.Submission_tail = tail_pointer_value;
 
 	std::ofstream myfile;
 	myfile.open ("sq_tail_tracker", std::ios::app);
-	myfile << "stream id: " << stream_id << " sq head: " << ((Input_Stream_NVMe *)input_streams[stream_id])->Submission_head <<
-	" sq tail: "<< ((Input_Stream_NVMe *)input_streams[stream_id])->Submission_tail << " on the fly: " << ((Input_Stream_NVMe *)input_streams[stream_id])->On_the_fly_requests <<
+	myfile << "stream id: " << stream_id << " sq head: " << ((Input_Stream_NVMe *)input_streams[stream_id])->Read_queue.Submission_head <<
+	" sq tail: "<< ((Input_Stream_NVMe *)input_streams[stream_id])->Read_queue.Submission_tail << " on the fly: " << ((Input_Stream_NVMe *)input_streams[stream_id])->On_the_fly_requests <<
 		" "  << Simulator->Time()<<"\n";
 	myfile.close();
 
@@ -52,10 +52,33 @@ inline void Input_Stream_Manager_NVMe::Submission_queue_tail_pointer_update(stre
 	{
 		((Host_Interface_NVMe *)host_interface)->request_fetch_unit->Fetch_next_request(stream_id);
 		((Input_Stream_NVMe *)input_streams[stream_id])->On_the_fly_requests++;
-		((Input_Stream_NVMe *)input_streams[stream_id])->Submission_head++; //Update submission queue head after starting fetch request
-		if (((Input_Stream_NVMe *)input_streams[stream_id])->Submission_head == ((Input_Stream_NVMe *)input_streams[stream_id])->Submission_queue_size)
+		((Input_Stream_NVMe *)input_streams[stream_id])->Read_queue.Submission_head++; //Update submission queue head after starting fetch request
+		if (((Input_Stream_NVMe *)input_streams[stream_id])->Read_queue.Submission_head == ((Input_Stream_NVMe *)input_streams[stream_id])->Read_queue.Submission_queue_size)
 		{ //Circular queue implementation
-			((Input_Stream_NVMe *)input_streams[stream_id])->Submission_head = 0;
+			((Input_Stream_NVMe *)input_streams[stream_id])->Read_queue.Submission_head = 0;
+		}
+	}
+}
+
+inline void Input_Stream_Manager_NVMe::Write_submission_queue_tail_pointer_update(stream_id_type stream_id, uint16_t tail_pointer_value)
+{
+	((Input_Stream_NVMe *)input_streams[stream_id])->Write_queue.Submission_tail = tail_pointer_value;
+
+	std::ofstream myfile;
+	myfile.open ("sq_tail_tracker", std::ios::app);
+	myfile << "stream id: " << stream_id << " sq head: " << ((Input_Stream_NVMe *)input_streams[stream_id])->Write_queue.Submission_head <<
+	" sq tail: "<< ((Input_Stream_NVMe *)input_streams[stream_id])->Write_queue.Submission_tail << " on the fly: " << ((Input_Stream_NVMe *)input_streams[stream_id])->On_the_fly_requests <<
+		" "  << Simulator->Time()<<"\n";
+	myfile.close();
+
+	if (((Input_Stream_NVMe *)input_streams[stream_id])->On_the_fly_requests < Queue_fetch_size)
+	{
+		((Host_Interface_NVMe *)host_interface)->request_fetch_unit->Fetch_next_request(stream_id);
+		((Input_Stream_NVMe *)input_streams[stream_id])->On_the_fly_requests++;
+		((Input_Stream_NVMe *)input_streams[stream_id])->Write_queue.Submission_head++; //Update submission queue head after starting fetch request
+		if (((Input_Stream_NVMe *)input_streams[stream_id])->Write_queue.Submission_head == ((Input_Stream_NVMe *)input_streams[stream_id])->Write_queue.Submission_queue_size)
+		{ //Circular queue implementation
+			((Input_Stream_NVMe *)input_streams[stream_id])->Write_queue.Submission_head = 0;
 		}
 	}
 }
@@ -75,11 +98,22 @@ inline void Input_Stream_Manager_NVMe::Completion_queue_head_pointer_update(stre
 
 inline void Input_Stream_Manager_NVMe::Handle_new_arrived_request(User_Request *request)
 {
-	((Input_Stream_NVMe *)input_streams[request->Stream_id])->Submission_head_informed_to_host++;
-	if (((Input_Stream_NVMe *)input_streams[request->Stream_id])->Submission_head_informed_to_host == ((Input_Stream_NVMe *)input_streams[request->Stream_id])->Submission_queue_size)
-	{ //Circular queue implementation
-		((Input_Stream_NVMe *)input_streams[request->Stream_id])->Submission_head_informed_to_host = 0;
+	if (request->Type == UserRequestType::READ)
+	{	
+		((Input_Stream_NVMe *)input_streams[request->Stream_id])->Read_queue.Submission_head_informed_to_host++;
+		if (((Input_Stream_NVMe *)input_streams[request->Stream_id])->Read_queue.Submission_head_informed_to_host == ((Input_Stream_NVMe *)input_streams[request->Stream_id])->Read_queue.Submission_queue_size)
+		{ //Circular queue implementation
+			((Input_Stream_NVMe *)input_streams[request->Stream_id])->Read_queue.Submission_head_informed_to_host = 0;
+		}
+	} else {
+		((Input_Stream_NVMe *)input_streams[request->Stream_id])->Write_queue.Submission_head_informed_to_host++;
+		if (((Input_Stream_NVMe *)input_streams[request->Stream_id])->Write_queue.Submission_head_informed_to_host == ((Input_Stream_NVMe *)input_streams[request->Stream_id])->Write_queue.Submission_queue_size)
+		{ //Circular queue implementation
+			((Input_Stream_NVMe *)input_streams[request->Stream_id])->Write_queue.Submission_head_informed_to_host = 0;
+		}
 	}
+
+
 	if (request->Type == UserRequestType::READ)
 	{
 		((Input_Stream_NVMe *)input_streams[request->Stream_id])->Waiting_user_requests.push_back(request);
@@ -115,24 +149,48 @@ inline void Input_Stream_Manager_NVMe::Handle_serviced_request(User_Request *req
 	{
 		((Host_Interface_NVMe *)host_interface)->request_fetch_unit->Send_read_data(request);
 	}
+
+	if (request->Type == UserRequestType::READ)
+	{
 		std::ofstream myfile;
 		myfile.open ("sq_tracker", std::ios::app);
-		myfile << "stream id: " << stream_id << " sq head: " << ((Input_Stream_NVMe *)input_streams[stream_id])->Submission_head <<
-		" sq tail: "<< ((Input_Stream_NVMe *)input_streams[stream_id])->Submission_tail << " on the fly: " << ((Input_Stream_NVMe *)input_streams[stream_id])->On_the_fly_requests <<
-		 " "  << Simulator->Time()<<"\n";
+		myfile << "stream id: " << stream_id <<" read sq head: " << ((Input_Stream_NVMe *)input_streams[stream_id])->Read_queue.Submission_head <<
+		" sq tail: "<< ((Input_Stream_NVMe *)input_streams[stream_id])->Read_queue.Submission_tail << " on the fly: " << ((Input_Stream_NVMe *)input_streams[stream_id])->On_the_fly_requests <<
+			" "  << Simulator->Time()<<"\n";
 		myfile.close();
-		
-	//there are waiting requests in the submission queue but have not been fetched, due to Queue_fetch_size limit
-	if (((Input_Stream_NVMe *)input_streams[stream_id])->Submission_head != ((Input_Stream_NVMe *)input_streams[stream_id])->Submission_tail)
-	{
-		((Host_Interface_NVMe *)host_interface)->request_fetch_unit->Fetch_next_request(stream_id);
-		((Input_Stream_NVMe *)input_streams[stream_id])->On_the_fly_requests++;
-		((Input_Stream_NVMe *)input_streams[stream_id])->Submission_head++; //Update submission queue head after starting fetch request
-		if (((Input_Stream_NVMe *)input_streams[stream_id])->Submission_head == ((Input_Stream_NVMe *)input_streams[stream_id])->Submission_queue_size)
-		{ //Circular queue implementation
-			((Input_Stream_NVMe *)input_streams[stream_id])->Submission_head = 0;
+			
+		//there are waiting requests in the submission queue but have not been fetched, due to Queue_fetch_size limit
+		if (((Input_Stream_NVMe *)input_streams[stream_id])->Read_queue.Submission_head != ((Input_Stream_NVMe *)input_streams[stream_id])->Read_queue.Submission_tail)
+		{
+			((Host_Interface_NVMe *)host_interface)->request_fetch_unit->Fetch_next_request(stream_id);
+			((Input_Stream_NVMe *)input_streams[stream_id])->On_the_fly_requests++;
+			((Input_Stream_NVMe *)input_streams[stream_id])->Read_queue.Submission_head++; //Update submission queue head after starting fetch request
+			if (((Input_Stream_NVMe *)input_streams[stream_id])->Read_queue.Submission_head == ((Input_Stream_NVMe *)input_streams[stream_id])->Read_queue.Submission_queue_size)
+			{ //Circular queue implementation
+				((Input_Stream_NVMe *)input_streams[stream_id])->Read_queue.Submission_head = 0;
+			}
+		}
+	} else {
+		std::ofstream myfile;
+		myfile.open ("sq_tracker", std::ios::app);
+		myfile << "stream id: " << stream_id << " write sq head: " << ((Input_Stream_NVMe *)input_streams[stream_id])->Write_queue.Submission_head <<
+		" sq tail: "<< ((Input_Stream_NVMe *)input_streams[stream_id])->Write_queue.Submission_tail << " on the fly: " << ((Input_Stream_NVMe *)input_streams[stream_id])->On_the_fly_requests <<
+			" "  << Simulator->Time()<<"\n";
+		myfile.close();
+			
+		//there are waiting requests in the submission queue but have not been fetched, due to Queue_fetch_size limit
+		if (((Input_Stream_NVMe *)input_streams[stream_id])->Write_queue.Submission_head != ((Input_Stream_NVMe *)input_streams[stream_id])->Write_queue.Submission_tail)
+		{
+			((Host_Interface_NVMe *)host_interface)->request_fetch_unit->Fetch_next_request(stream_id);
+			((Input_Stream_NVMe *)input_streams[stream_id])->On_the_fly_requests++;
+			((Input_Stream_NVMe *)input_streams[stream_id])->Write_queue.Submission_head++; //Update submission queue head after starting fetch request
+			if (((Input_Stream_NVMe *)input_streams[stream_id])->Write_queue.Submission_head == ((Input_Stream_NVMe *)input_streams[stream_id])->Write_queue.Submission_queue_size)
+			{ //Circular queue implementation
+				((Input_Stream_NVMe *)input_streams[stream_id])->Write_queue.Submission_head = 0;
+			}
 		}
 	}
+
 
 	//Check if completion queue is full
 	if (((Input_Stream_NVMe *)input_streams[stream_id])->Completion_head > ((Input_Stream_NVMe *)input_streams[stream_id])->Completion_tail)
@@ -156,7 +214,7 @@ inline void Input_Stream_Manager_NVMe::Handle_serviced_request(User_Request *req
 
 uint16_t Input_Stream_Manager_NVMe::Get_submission_queue_depth(stream_id_type stream_id)
 {
-	return ((Input_Stream_NVMe *)this->input_streams[stream_id])->Submission_queue_size;
+	return ((Input_Stream_NVMe *)this->input_streams[stream_id])->Write_queue.Submission_queue_size; // queue depth is same for w/r queues
 }
 
 uint16_t Input_Stream_Manager_NVMe::Get_completion_queue_depth(stream_id_type stream_id)
@@ -171,7 +229,10 @@ IO_Flow_Priority_Class::Priority Input_Stream_Manager_NVMe::Get_priority_class(s
 
 inline void Input_Stream_Manager_NVMe::inform_host_request_completed(stream_id_type stream_id, User_Request *request)
 {
-	((Request_Fetch_Unit_NVMe *)((Host_Interface_NVMe *)host_interface)->request_fetch_unit)->Send_completion_queue_element(request, ((Input_Stream_NVMe *)input_streams[stream_id])->Submission_head_informed_to_host);
+	request->Type==UserRequestType::READ?
+	((Request_Fetch_Unit_NVMe *)((Host_Interface_NVMe *)host_interface)->request_fetch_unit)->Send_completion_queue_element(request, ((Input_Stream_NVMe *)input_streams[stream_id])->Read_queue.Submission_head_informed_to_host)
+	: ((Request_Fetch_Unit_NVMe *)((Host_Interface_NVMe *)host_interface)->request_fetch_unit)->Send_completion_queue_element(request, ((Input_Stream_NVMe *)input_streams[stream_id])->Write_queue.Submission_head_informed_to_host);
+	
 	((Input_Stream_NVMe *)input_streams[stream_id])->Completion_tail++; //Next free slot in the completion queue
 	//Circular queue implementation
 	if (((Input_Stream_NVMe *)input_streams[stream_id])->Completion_tail == ((Input_Stream_NVMe *)input_streams[stream_id])->Completion_queue_size)
@@ -228,7 +289,7 @@ void Input_Stream_Manager_NVMe::segment_user_request(User_Request *user_request)
 	}
 }
 
-Request_Fetch_Unit_NVMe::Request_Fetch_Unit_NVMe(Host_Interface_Base *host_interface) : Request_Fetch_Unit_Base(host_interface), current_phase(0xffff), number_of_sent_cqe(0) {}
+Request_Fetch_Unit_NVMe::Request_Fetch_Unit_NVMe(Host_Interface_Base *host_interface) : Request_Fetch_Unit_Base(host_interface), current_phase(0xffff), number_of_sent_cqe(0) {Set_queue_token(2, 1);}
 
 void Request_Fetch_Unit_NVMe::Process_pcie_write_message(uint64_t address, void *payload, unsigned int payload_size)
 {
@@ -237,52 +298,73 @@ void Request_Fetch_Unit_NVMe::Process_pcie_write_message(uint64_t address, void 
 	switch (address)
 	{
 	case SUBMISSION_QUEUE_REGISTER_1:
-		((Input_Stream_Manager_NVMe *)(hi->input_stream_manager))->Submission_queue_tail_pointer_update(0, (uint16_t)val);
+		((Input_Stream_Manager_NVMe *)(hi->input_stream_manager))->Read_submission_queue_tail_pointer_update(0, (uint16_t)val);
 		break;
-	case SUBMISSION_QUEUE_REGISTER_1 + 0X0100:
-		((Input_Stream_Manager_NVMe *)(hi->input_stream_manager))->Submission_queue_tail_pointer_update(0, (uint16_t)val);
+	case SUBMISSION_QUEUE_REGISTER_1 + 0x0100:
+		((Input_Stream_Manager_NVMe *)(hi->input_stream_manager))->Write_submission_queue_tail_pointer_update(0, (uint16_t)val);
 		break;
 	case COMPLETION_QUEUE_REGISTER_1:
 		((Input_Stream_Manager_NVMe *)(hi->input_stream_manager))->Completion_queue_head_pointer_update(0, (uint16_t)val);
 		break;
 	case SUBMISSION_QUEUE_REGISTER_2:
-		((Input_Stream_Manager_NVMe *)(hi->input_stream_manager))->Submission_queue_tail_pointer_update(1, (uint16_t)val);
+		((Input_Stream_Manager_NVMe *)(hi->input_stream_manager))->Read_submission_queue_tail_pointer_update(1, (uint16_t)val);
+		break;
+	case SUBMISSION_QUEUE_REGISTER_2 + 0x0100:
+		((Input_Stream_Manager_NVMe *)(hi->input_stream_manager))->Write_submission_queue_tail_pointer_update(0, (uint16_t)val);
 		break;
 	case COMPLETION_QUEUE_REGISTER_2:
 		((Input_Stream_Manager_NVMe *)(hi->input_stream_manager))->Completion_queue_head_pointer_update(1, (uint16_t)val);
 		break;
 	case SUBMISSION_QUEUE_REGISTER_3:
-		((Input_Stream_Manager_NVMe *)(hi->input_stream_manager))->Submission_queue_tail_pointer_update(2, (uint16_t)val);
+		((Input_Stream_Manager_NVMe *)(hi->input_stream_manager))->Read_submission_queue_tail_pointer_update(2, (uint16_t)val);
+		break;
+	case SUBMISSION_QUEUE_REGISTER_3 + 0x0100:
+		((Input_Stream_Manager_NVMe *)(hi->input_stream_manager))->Write_submission_queue_tail_pointer_update(0, (uint16_t)val);
 		break;
 	case COMPLETION_QUEUE_REGISTER_3:
 		((Input_Stream_Manager_NVMe *)(hi->input_stream_manager))->Completion_queue_head_pointer_update(2, (uint16_t)val);
 		break;
 	case SUBMISSION_QUEUE_REGISTER_4:
-		((Input_Stream_Manager_NVMe *)(hi->input_stream_manager))->Submission_queue_tail_pointer_update(3, (uint16_t)val);
+		((Input_Stream_Manager_NVMe *)(hi->input_stream_manager))->Read_submission_queue_tail_pointer_update(3, (uint16_t)val);
+		break;
+	case SUBMISSION_QUEUE_REGISTER_4 + 0x0100:
+		((Input_Stream_Manager_NVMe *)(hi->input_stream_manager))->Write_submission_queue_tail_pointer_update(0, (uint16_t)val);
 		break;
 	case COMPLETION_QUEUE_REGISTER_4:
 		((Input_Stream_Manager_NVMe *)(hi->input_stream_manager))->Completion_queue_head_pointer_update(3, (uint16_t)val);
 		break;
 	case SUBMISSION_QUEUE_REGISTER_5:
-		((Input_Stream_Manager_NVMe *)(hi->input_stream_manager))->Submission_queue_tail_pointer_update(4, (uint16_t)val);
+		((Input_Stream_Manager_NVMe *)(hi->input_stream_manager))->Read_submission_queue_tail_pointer_update(4, (uint16_t)val);
+		break;
+	case SUBMISSION_QUEUE_REGISTER_5 + 0x0100:
+		((Input_Stream_Manager_NVMe *)(hi->input_stream_manager))->Write_submission_queue_tail_pointer_update(0, (uint16_t)val);
 		break;
 	case COMPLETION_QUEUE_REGISTER_5:
 		((Input_Stream_Manager_NVMe *)(hi->input_stream_manager))->Completion_queue_head_pointer_update(4, (uint16_t)val);
 		break;
 	case SUBMISSION_QUEUE_REGISTER_6:
-		((Input_Stream_Manager_NVMe *)(hi->input_stream_manager))->Submission_queue_tail_pointer_update(5, (uint16_t)val);
+		((Input_Stream_Manager_NVMe *)(hi->input_stream_manager))->Read_submission_queue_tail_pointer_update(5, (uint16_t)val);
+		break;
+	case SUBMISSION_QUEUE_REGISTER_6 + 0x0100:
+		((Input_Stream_Manager_NVMe *)(hi->input_stream_manager))->Write_submission_queue_tail_pointer_update(0, (uint16_t)val);
 		break;
 	case COMPLETION_QUEUE_REGISTER_6:
 		((Input_Stream_Manager_NVMe *)(hi->input_stream_manager))->Completion_queue_head_pointer_update(5, (uint16_t)val);
 		break;
 	case SUBMISSION_QUEUE_REGISTER_7:
-		((Input_Stream_Manager_NVMe *)(hi->input_stream_manager))->Submission_queue_tail_pointer_update(6, (uint16_t)val);
+		((Input_Stream_Manager_NVMe *)(hi->input_stream_manager))->Read_submission_queue_tail_pointer_update(6, (uint16_t)val);
+		break;
+	case SUBMISSION_QUEUE_REGISTER_7 + 0x0100:
+		((Input_Stream_Manager_NVMe *)(hi->input_stream_manager))->Write_submission_queue_tail_pointer_update(0, (uint16_t)val);
 		break;
 	case COMPLETION_QUEUE_REGISTER_7:
 		((Input_Stream_Manager_NVMe *)(hi->input_stream_manager))->Completion_queue_head_pointer_update(6, (uint16_t)val);
 		break;
 	case SUBMISSION_QUEUE_REGISTER_8:
-		((Input_Stream_Manager_NVMe *)(hi->input_stream_manager))->Submission_queue_tail_pointer_update(7, (uint16_t)val);
+		((Input_Stream_Manager_NVMe *)(hi->input_stream_manager))->Read_submission_queue_tail_pointer_update(7, (uint16_t)val);
+		break;
+	case SUBMISSION_QUEUE_REGISTER_8 + 0x0100:
+		((Input_Stream_Manager_NVMe *)(hi->input_stream_manager))->Write_submission_queue_tail_pointer_update(0, (uint16_t)val);
 		break;
 	case COMPLETION_QUEUE_REGISTER_8:
 		((Input_Stream_Manager_NVMe *)(hi->input_stream_manager))->Completion_queue_head_pointer_update(7, (uint16_t)val);
@@ -338,6 +420,14 @@ void Request_Fetch_Unit_NVMe::Process_pcie_read_message(uint64_t address, void *
 	delete dma_req_item;
 }
 
+void Request_Fetch_Unit_NVMe::Set_queue_token(uint8_t read_token_value, uint8_t write_token_value)
+{
+	read_queue_token = read_token_value;
+	write_queue_token = write_token_value;
+	read_token = read_token_value;
+	write_token = write_token_value;
+}
+
 void Request_Fetch_Unit_NVMe::Fetch_next_request(stream_id_type stream_id)
 {
 	DMA_Req_Item *dma_req_item = new DMA_Req_Item;
@@ -347,7 +437,21 @@ void Request_Fetch_Unit_NVMe::Fetch_next_request(stream_id_type stream_id)
 
 	Host_Interface_NVMe *hi = (Host_Interface_NVMe *)host_interface;
 	Input_Stream_NVMe *im = ((Input_Stream_NVMe *)hi->input_stream_manager->input_streams[stream_id]);
-	host_interface->Send_read_message_to_host(im->Submission_queue_base_address + im->Submission_head * sizeof(Submission_Queue_Entry), sizeof(Submission_Queue_Entry));
+	if (read_token == 0) 
+	{
+		if (write_token == 0) 
+		{
+			read_token = read_queue_token - 1;
+			write_token = write_queue_token;
+			host_interface->Send_read_message_to_host(im->Read_queue.Submission_queue_base_address + im->Read_queue.Submission_head * sizeof(Submission_Queue_Entry), sizeof(Submission_Queue_Entry));
+		} else {
+			write_token--;
+			host_interface->Send_read_message_to_host(im->Write_queue.Submission_queue_base_address + im->Write_queue.Submission_head * sizeof(Submission_Queue_Entry), sizeof(Submission_Queue_Entry));
+		}
+	} else {
+		read_token--;
+		host_interface->Send_read_message_to_host(im->Read_queue.Submission_queue_base_address + im->Read_queue.Submission_head * sizeof(Submission_Queue_Entry), sizeof(Submission_Queue_Entry));
+	}
 }
 
 void Request_Fetch_Unit_NVMe::Fetch_write_data(User_Request *request)
@@ -406,7 +510,7 @@ Host_Interface_NVMe::Host_Interface_NVMe(const sim_object_id_type &id,
 stream_id_type Host_Interface_NVMe::Create_new_stream(IO_Flow_Priority_Class::Priority priority_class, LHA_type start_logical_sector_address, LHA_type end_logical_sector_address,
 													  uint64_t read_submission_queue_base_address, uint64_t write_submission_queue_base_address, uint64_t completion_queue_base_address)
 {
-	return ((Input_Stream_Manager_NVMe *)input_stream_manager)->Create_new_stream(priority_class, start_logical_sector_address, end_logical_sector_address, read_submission_queue_base_address, write_submission_queue_base_address, submission_queue_depth, completion_queue_base_address, completion_queue_depth);
+	return ((Input_Stream_Manager_NVMe *)input_stream_manager)->Create_new_stream(priority_class, start_logical_sector_address, end_logical_sector_address, read_submission_queue_base_address, submission_queue_depth, completion_queue_base_address, completion_queue_depth);
 }
 
 void Host_Interface_NVMe::Validate_simulation_config()
