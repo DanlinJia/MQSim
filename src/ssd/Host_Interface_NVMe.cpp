@@ -43,7 +43,7 @@ inline void Input_Stream_Manager_NVMe::Read_submission_queue_tail_pointer_update
 
 	std::ofstream myfile;
 	myfile.open ("sq_tail_tracker", std::ios::app);
-	myfile << "stream id: " << stream_id << " sq head: " << ((Input_Stream_NVMe *)input_streams[stream_id])->Read_queue.Submission_head <<
+	myfile << "stream id: " << stream_id << " read sq head: " << ((Input_Stream_NVMe *)input_streams[stream_id])->Read_queue.Submission_head <<
 	" sq tail: "<< ((Input_Stream_NVMe *)input_streams[stream_id])->Read_queue.Submission_tail << " on the fly: " << ((Input_Stream_NVMe *)input_streams[stream_id])->On_the_fly_requests <<
 		" "  << Simulator->Time()<<"\n";
 	myfile.close();
@@ -66,7 +66,7 @@ inline void Input_Stream_Manager_NVMe::Write_submission_queue_tail_pointer_updat
 
 	std::ofstream myfile;
 	myfile.open ("sq_tail_tracker", std::ios::app);
-	myfile << "stream id: " << stream_id << " sq head: " << ((Input_Stream_NVMe *)input_streams[stream_id])->Write_queue.Submission_head <<
+	myfile << "stream id: " << stream_id << " write sq head: " << ((Input_Stream_NVMe *)input_streams[stream_id])->Write_queue.Submission_head <<
 	" sq tail: "<< ((Input_Stream_NVMe *)input_streams[stream_id])->Write_queue.Submission_tail << " on the fly: " << ((Input_Stream_NVMe *)input_streams[stream_id])->On_the_fly_requests <<
 		" "  << Simulator->Time()<<"\n";
 	myfile.close();

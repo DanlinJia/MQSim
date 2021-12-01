@@ -60,7 +60,7 @@ IO_Flow_Base::IO_Flow_Base(const sim_object_id_type &name, uint16_t flow_id, LHA
 			break;
 		case 1:
 			nvme_queue_pair.Read_sq.Submission_queue_memory_base_address = SUBMISSION_QUEUE_MEMORY_1;
-			nvme_queue_pair.Write_sq.Submission_queue_memory_base_address = SUBMISSION_QUEUE_MEMORY_1 << 0x10;
+			nvme_queue_pair.Write_sq.Submission_queue_memory_base_address = SUBMISSION_QUEUE_MEMORY_1 + 0x100000000000;
 			nvme_queue_pair.Read_sq.Submission_tail_register_address_on_device = SUBMISSION_QUEUE_REGISTER_1;
 			nvme_queue_pair.Write_sq.Submission_tail_register_address_on_device = SUBMISSION_QUEUE_REGISTER_1 + 0x0100;
 			nvme_queue_pair.Completion_queue_memory_base_address = COMPLETION_QUEUE_MEMORY_1;
@@ -68,7 +68,7 @@ IO_Flow_Base::IO_Flow_Base(const sim_object_id_type &name, uint16_t flow_id, LHA
 			break;
 		case 2:
 			nvme_queue_pair.Read_sq.Submission_queue_memory_base_address = SUBMISSION_QUEUE_MEMORY_2;
-			nvme_queue_pair.Write_sq.Submission_queue_memory_base_address = SUBMISSION_QUEUE_MEMORY_2 << 0x10;
+			nvme_queue_pair.Write_sq.Submission_queue_memory_base_address = SUBMISSION_QUEUE_MEMORY_2 + 0x100000000000;
 			nvme_queue_pair.Read_sq.Submission_tail_register_address_on_device = SUBMISSION_QUEUE_REGISTER_2;
 			nvme_queue_pair.Write_sq.Submission_tail_register_address_on_device = SUBMISSION_QUEUE_REGISTER_2 + 0x0100;
 			nvme_queue_pair.Completion_queue_memory_base_address = COMPLETION_QUEUE_MEMORY_2;
@@ -76,7 +76,7 @@ IO_Flow_Base::IO_Flow_Base(const sim_object_id_type &name, uint16_t flow_id, LHA
 			break;
 		case 3:
 			nvme_queue_pair.Read_sq.Submission_queue_memory_base_address = SUBMISSION_QUEUE_MEMORY_3;
-			nvme_queue_pair.Write_sq.Submission_queue_memory_base_address = SUBMISSION_QUEUE_MEMORY_3 << 0x10;
+			nvme_queue_pair.Write_sq.Submission_queue_memory_base_address = SUBMISSION_QUEUE_MEMORY_3 + 0x100000000000;
 			nvme_queue_pair.Read_sq.Submission_tail_register_address_on_device = SUBMISSION_QUEUE_REGISTER_3;
 			nvme_queue_pair.Write_sq.Submission_tail_register_address_on_device = SUBMISSION_QUEUE_REGISTER_3 + 0x0100;
 			nvme_queue_pair.Completion_queue_memory_base_address = COMPLETION_QUEUE_MEMORY_3;
@@ -84,7 +84,7 @@ IO_Flow_Base::IO_Flow_Base(const sim_object_id_type &name, uint16_t flow_id, LHA
 			break;
 		case 4:
 			nvme_queue_pair.Read_sq.Submission_queue_memory_base_address = SUBMISSION_QUEUE_MEMORY_4;
-			nvme_queue_pair.Write_sq.Submission_queue_memory_base_address = SUBMISSION_QUEUE_MEMORY_4 << 0x10;
+			nvme_queue_pair.Write_sq.Submission_queue_memory_base_address = SUBMISSION_QUEUE_MEMORY_4 + 0x100000000000;
 			nvme_queue_pair.Read_sq.Submission_tail_register_address_on_device = SUBMISSION_QUEUE_REGISTER_4;
 			nvme_queue_pair.Write_sq.Submission_tail_register_address_on_device = SUBMISSION_QUEUE_REGISTER_4 + 0x0100;
 			nvme_queue_pair.Completion_queue_memory_base_address = COMPLETION_QUEUE_MEMORY_4;
@@ -92,7 +92,7 @@ IO_Flow_Base::IO_Flow_Base(const sim_object_id_type &name, uint16_t flow_id, LHA
 			break;
 		case 5:
 			nvme_queue_pair.Read_sq.Submission_queue_memory_base_address = SUBMISSION_QUEUE_MEMORY_5;
-			nvme_queue_pair.Write_sq.Submission_queue_memory_base_address = SUBMISSION_QUEUE_MEMORY_5 << 0x10;
+			nvme_queue_pair.Write_sq.Submission_queue_memory_base_address = SUBMISSION_QUEUE_MEMORY_5 + 0x100000000000;
 			nvme_queue_pair.Read_sq.Submission_tail_register_address_on_device = SUBMISSION_QUEUE_REGISTER_5;
 			nvme_queue_pair.Write_sq.Submission_tail_register_address_on_device = SUBMISSION_QUEUE_REGISTER_5 + 0x0100;
 			nvme_queue_pair.Completion_queue_memory_base_address = COMPLETION_QUEUE_MEMORY_5;
@@ -100,7 +100,7 @@ IO_Flow_Base::IO_Flow_Base(const sim_object_id_type &name, uint16_t flow_id, LHA
 			break;
 		case 6:
 			nvme_queue_pair.Read_sq.Submission_queue_memory_base_address = SUBMISSION_QUEUE_MEMORY_6;
-			nvme_queue_pair.Write_sq.Submission_queue_memory_base_address = SUBMISSION_QUEUE_MEMORY_6 << 0x10;
+			nvme_queue_pair.Write_sq.Submission_queue_memory_base_address = SUBMISSION_QUEUE_MEMORY_6 + 0x100000000000;
 			nvme_queue_pair.Read_sq.Submission_tail_register_address_on_device = SUBMISSION_QUEUE_REGISTER_6;
 			nvme_queue_pair.Write_sq.Submission_tail_register_address_on_device = SUBMISSION_QUEUE_REGISTER_6 + 0x0100;
 			nvme_queue_pair.Completion_queue_memory_base_address = COMPLETION_QUEUE_MEMORY_6;
@@ -108,7 +108,7 @@ IO_Flow_Base::IO_Flow_Base(const sim_object_id_type &name, uint16_t flow_id, LHA
 			break;
 		case 7:
 			nvme_queue_pair.Read_sq.Submission_queue_memory_base_address = SUBMISSION_QUEUE_MEMORY_7;
-			nvme_queue_pair.Write_sq.Submission_queue_memory_base_address = SUBMISSION_QUEUE_MEMORY_7 << 0x10;
+			nvme_queue_pair.Write_sq.Submission_queue_memory_base_address = SUBMISSION_QUEUE_MEMORY_7 + 0x100000000000;
 			nvme_queue_pair.Read_sq.Submission_tail_register_address_on_device = SUBMISSION_QUEUE_REGISTER_7;
 			nvme_queue_pair.Write_sq.Submission_tail_register_address_on_device = SUBMISSION_QUEUE_REGISTER_7 + 0x0100;
 			nvme_queue_pair.Completion_queue_memory_base_address = COMPLETION_QUEUE_MEMORY_7;
@@ -116,7 +116,7 @@ IO_Flow_Base::IO_Flow_Base(const sim_object_id_type &name, uint16_t flow_id, LHA
 			break;
 		case 8:
 			nvme_queue_pair.Read_sq.Submission_queue_memory_base_address = SUBMISSION_QUEUE_MEMORY_8;
-			nvme_queue_pair.Write_sq.Submission_queue_memory_base_address = SUBMISSION_QUEUE_MEMORY_8 << 0x10;
+			nvme_queue_pair.Write_sq.Submission_queue_memory_base_address = SUBMISSION_QUEUE_MEMORY_8 + 0x100000000000;
 			nvme_queue_pair.Read_sq.Submission_tail_register_address_on_device = SUBMISSION_QUEUE_REGISTER_8;
 			nvme_queue_pair.Write_sq.Submission_tail_register_address_on_device = SUBMISSION_QUEUE_REGISTER_8 + 0x0100;
 			nvme_queue_pair.Completion_queue_memory_base_address = COMPLETION_QUEUE_MEMORY_8;
@@ -429,11 +429,13 @@ IO_Flow_Base::IO_Flow_Base(const sim_object_id_type &name, uint16_t flow_id, LHA
 	{
 		Submission_Queue_Entry* sqe = new Submission_Queue_Entry;
 		Host_IO_Request* request = NULL;
-		address - nvme_queue_pair.Write_sq.Submission_queue_memory_base_address < 0 ?
-			request = read_request_queue_in_memory[(uint16_t)((address - nvme_queue_pair.Read_sq.Submission_queue_memory_base_address) / sizeof(Submission_Queue_Entry))]
-			: request = write_request_queue_in_memory[(uint16_t)((address - nvme_queue_pair.Write_sq.Submission_queue_memory_base_address) / sizeof(Submission_Queue_Entry))];
+		// read sq address is less than 0x110000000000
+		request = (address <= 0x110000000000) ?
+			read_request_queue_in_memory[(uint16_t)((address - nvme_queue_pair.Read_sq.Submission_queue_memory_base_address) / sizeof(Submission_Queue_Entry))]
+			: write_request_queue_in_memory[(uint16_t)((address - nvme_queue_pair.Write_sq.Submission_queue_memory_base_address) / sizeof(Submission_Queue_Entry))];
 
 		if (request == NULL) {
+			PRINT_ERROR("invalide sqe ");
 			throw std::invalid_argument(this->ID() + ": Request to access a submission queue entry that does not exist.");
 		}
 

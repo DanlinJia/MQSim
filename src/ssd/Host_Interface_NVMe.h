@@ -13,7 +13,7 @@ namespace SSD_Components
 {
 struct Host_Interface_NVMe_Queue
 {	
-	Host_Interface_NVMe_Queue(uint64_t submission_queue_base_address, uint16_t submission_queue_size, int submission_head, int submission_tail)
+	Host_Interface_NVMe_Queue(uint64_t submission_queue_base_address, uint16_t submission_queue_size, uint16_t submission_head, uint16_t submission_tail)
 	: Submission_queue_base_address{submission_queue_base_address}, Submission_queue_size{submission_queue_size}, Submission_head{submission_head}, Submission_head_informed_to_host{submission_head}, Submission_tail{submission_tail} {}
 	uint64_t Submission_queue_base_address;
 	uint16_t Submission_queue_size;
