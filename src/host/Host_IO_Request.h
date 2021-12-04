@@ -6,6 +6,7 @@
 namespace Host_Components
 {
 	enum class Host_IO_Request_Type { READ, WRITE };
+	enum class Host_IO_Request_Status {WAITING, ACTIVE ,ONSERVICE, DEPART};
 	class Host_IO_Request
 	{
 	public:
@@ -16,6 +17,7 @@ namespace Host_Components
 		Host_IO_Request_Type Type;
 		uint16_t IO_queue_info;
 		uint16_t Source_flow_id;//Only used in SATA host interface
+		Host_IO_Request_Status Status;
 	};
 }
 

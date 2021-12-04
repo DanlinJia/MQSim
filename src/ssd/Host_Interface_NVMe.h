@@ -83,7 +83,6 @@ public:
 	void Send_completion_queue_element(User_Request *request, uint16_t sq_head_value);
 	void Process_pcie_write_message(uint64_t, void *, unsigned int);
 	void Process_pcie_read_message(uint64_t, void *, unsigned int);
-	void Set_queue_token(uint8_t read_token, uint8_t write_token);
 	uint8_t read_token;
 	uint8_t write_token;
 

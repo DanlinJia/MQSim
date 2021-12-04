@@ -47,6 +47,7 @@ IO_Flow_Base::IO_Flow_Base(const sim_object_id_type &name, uint16_t flow_id, LHA
 		nvme_queue_pair.Completion_queue_head = 0;
 		nvme_queue_pair.Completion_queue_tail = 0;
 
+		Set_queue_token(2, 1);
 		//id = 0: admin queues, id = 1 to 8, normal I/O queues
 		switch (io_queue_id)
 		{
@@ -264,10 +265,19 @@ IO_Flow_Base::IO_Flow_Base(const sim_object_id_type &name, uint16_t flow_id, LHA
 		}
 	}
 
+	void IO_Flow_Base::Set_queue_token(uint8_t read_token_value, uint8_t write_token_value)
+	{
+		read_queue_token_on_hand = read_token_value;
+		write_queue_token_on_hand = write_token_value;
+		read_token = read_token_value;
+		write_token = write_token_value;
+	}
+
 	void IO_Flow_Base::NVMe_consume_io_request(Completion_Queue_Entry* cqe)
 	{
 		//Find the request and update statistics
 		Host_IO_Request* request = nvme_software_request_queue[cqe->Command_Identifier];
+		request->Status = Host_IO_Request_Status::DEPART;
 		nvme_software_request_queue.erase(cqe->Command_Identifier);
 		available_command_ids.insert(cqe->Command_Identifier);
 		sim_time_type device_response_time = Simulator->Time() - request->Enqueue_time;
@@ -337,14 +347,13 @@ IO_Flow_Base::IO_Flow_Base(const sim_object_id_type &name, uint16_t flow_id, LHA
 			STAT_transferred_bytes_write += request->LBA_count * SECTOR_SIZE_IN_BYTE;
 		}
 
-		delete request;
-
+		//MQSim always assumes that the request is processed correctly, so no need to check cqe->SF_P
 		request->Type == Host_IO_Request_Type::READ ?
 			nvme_queue_pair.Read_sq.Submission_queue_head = cqe->SQ_Head
 			: nvme_queue_pair.Write_sq.Submission_queue_head = cqe->SQ_Head;
-		
-		//MQSim always assumes that the request is processed correctly, so no need to check cqe->SF_P
 
+		delete request;
+		
 		//If the submission queue is not full anymore, then enqueue waiting requests
 		while(waiting_requests.size() > 0) {
 			Host_IO_Request* new_req = waiting_requests.front();
@@ -430,14 +439,16 @@ IO_Flow_Base::IO_Flow_Base(const sim_object_id_type &name, uint16_t flow_id, LHA
 		Submission_Queue_Entry* sqe = new Submission_Queue_Entry;
 		Host_IO_Request* request = NULL;
 		// read sq address is less than 0x110000000000
-		request = (address <= 0x110000000000) ?
+		request = (address < 0x100000000000) ?
 			read_request_queue_in_memory[(uint16_t)((address - nvme_queue_pair.Read_sq.Submission_queue_memory_base_address) / sizeof(Submission_Queue_Entry))]
 			: write_request_queue_in_memory[(uint16_t)((address - nvme_queue_pair.Write_sq.Submission_queue_memory_base_address) / sizeof(Submission_Queue_Entry))];
-
+		
 		if (request == NULL) {
 			PRINT_ERROR("invalide sqe ");
 			throw std::invalid_argument(this->ID() + ": Request to access a submission queue entry that does not exist.");
 		}
+		
+		request->Status = Host_IO_Request_Status::ONSERVICE;
 
 		sqe->Command_Identifier = request->IO_queue_info;
 		if (request->Type == Host_IO_Request_Type::READ) {
@@ -458,6 +469,33 @@ IO_Flow_Base::IO_Flow_Base(const sim_object_id_type &name, uint16_t flow_id, LHA
 
 		return sqe;
 	}
+
+	int64_t IO_Flow_Base::Next_waiting_req(std::vector<Host_IO_Request*> req_list, int64_t sq_head)
+	{
+		int64_t index = sq_head;
+		Host_IO_Request* req = req_list[index];
+		while (req!=NULL)
+		{
+			if (req->Status==Host_IO_Request_Status::WAITING)
+				return index;
+			index = index + 1;
+			req = req_list[index];
+		}
+		return -1;
+		
+		// for (auto &req: req_list)
+		// {
+		// 	if (!req)
+		// 		return -1;
+		// 	else if(req->Status==Host_IO_Request_Status::WAITING)
+		// 		break;
+		// 	index ++; 
+		// }
+		// if (req_list[index]==NULL)
+		// 	return -1;
+		// return index;
+	}
+
 
 	void IO_Flow_Base::Submit_io_request(Host_IO_Request* request)
 	{
@@ -487,15 +525,15 @@ IO_Flow_Base::IO_Flow_Base(const sim_object_id_type &name, uint16_t flow_id, LHA
 							read_request_queue_in_memory[nvme_queue_pair.Read_sq.Submission_queue_tail] = request;
 							NVME_UPDATE_SQ_TAIL(nvme_queue_pair.Read_sq);	
 						} else {
-							read_request_queue_in_memory[nvme_queue_pair.Write_sq.Submission_queue_tail] = request;
+							write_request_queue_in_memory[nvme_queue_pair.Write_sq.Submission_queue_tail] = request;
 							NVME_UPDATE_SQ_TAIL(nvme_queue_pair.Write_sq);	
 						}
 
 						std::ofstream myfile;
 						myfile.open ("queue_tracker", std::ios::app);
-						myfile << "read sq head: "<< nvme_queue_pair.Read_sq.Submission_queue_head <<
+						myfile << " read sq head: "<< nvme_queue_pair.Read_sq.Submission_queue_head <<
 						" read sq tail: "<< nvme_queue_pair.Read_sq.Submission_queue_tail << 
-						"write sq head: "<< nvme_queue_pair.Write_sq.Submission_queue_head <<
+						" write sq head: "<< nvme_queue_pair.Write_sq.Submission_queue_head <<
 						" write sq tail: "<< nvme_queue_pair.Write_sq.Submission_queue_tail << 
 						" " << Simulator->Time()<<"\n";
 						myfile.close();

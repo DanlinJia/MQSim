@@ -44,8 +44,7 @@ namespace Host_Components
 		PCIe_Message* new_pcie_message = new Host_Components::PCIe_Message;
 		new_pcie_message->Type = PCIe_Message_Type::READ_COMP;
 		new_pcie_message->Destination = Host_Components::PCIe_Destination_Type::DEVICE;
-		new_pcie_message->Address = address;
-
+		
 		//This is a request to read the data of a write request
 		if (address >= DATA_MEMORY_REGION) {
 			//nothing to do
@@ -55,8 +54,57 @@ namespace Host_Components
 			switch (SSD_device_type) {
 				case HostInterface_Types::NVME:
 				{
-					uint16_t flow_id = QUEUE_ID_TO_FLOW_ID(uint16_t(address >> NVME_COMP_Q_MEMORY_REGION));
-					new_pcie_message->Payload = (*IO_flows)[flow_id]->NVMe_read_sqe(address);
+					uint16_t flow_id;
+					if (address<SUBMISSION_QUEUE_MEMORY_1) 
+					{
+						flow_id = address;
+						IO_Flow_Base *flow = (*IO_flows)[flow_id];
+						Host_IO_Request_Type next_type;
+						if (flow->read_queue_token_on_hand == 0) 
+						{
+							if (flow->write_queue_token_on_hand == 0) 
+							{
+								flow->read_queue_token_on_hand = flow->read_token - 1;
+								flow->write_queue_token_on_hand = flow->write_token;
+								next_type = Host_IO_Request_Type::READ;
+							} else {
+								flow->write_queue_token_on_hand--;
+								next_type = Host_IO_Request_Type::WRITE;
+							}
+						} else {
+							flow->read_queue_token_on_hand--;
+							next_type = Host_IO_Request_Type::READ;
+						}
+						new_pcie_message->Address = -1;
+						int64_t index=-1;
+						while (new_pcie_message->Address == -1)
+						{
+							if (next_type==Host_IO_Request_Type::READ)
+							{
+								index = flow->Next_waiting_req(flow->read_request_queue_in_memory, flow->nvme_queue_pair.Read_sq.Submission_queue_head);
+								if (index==-1) {
+									next_type = Host_IO_Request_Type::WRITE;
+									continue;
+								}
+								new_pcie_message->Address = flow->nvme_queue_pair.Read_sq.Submission_queue_memory_base_address + index*sizeof(Submission_Queue_Entry);						
+								flow->read_request_queue_in_memory[index]->Status = Host_IO_Request_Status::ACTIVE;
+							} else {
+								index = flow->Next_waiting_req(flow->write_request_queue_in_memory, flow->nvme_queue_pair.Write_sq.Submission_queue_head);
+								if (index==-1) {
+									next_type = Host_IO_Request_Type::READ;
+									continue;
+								}
+								new_pcie_message->Address = flow->nvme_queue_pair.Write_sq.Submission_queue_memory_base_address + index*sizeof(Submission_Queue_Entry);						
+								flow->write_request_queue_in_memory[index]->Status = Host_IO_Request_Status::ACTIVE;
+							}
+							break;
+						}
+						// printf("next index is %ld for %d\n", index, (int)next_type);
+					} else {
+						flow_id = QUEUE_ID_TO_FLOW_ID(uint16_t(address >> NVME_COMP_Q_MEMORY_REGION));
+						new_pcie_message->Address = address;
+					}
+					new_pcie_message->Payload = (*IO_flows)[flow_id]->NVMe_read_sqe(new_pcie_message->Address);
 					new_pcie_message->Payload_size = sizeof(Submission_Queue_Entry);
 					break;
 				}

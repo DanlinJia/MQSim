@@ -55,6 +55,11 @@ namespace SSD_Components
 	{
 	}
 
+	void Host_Interface_Base::Send_fetch_message_to_host(uint64_t stream_id, unsigned int request_read_data_size)
+	{
+		Send_read_message_to_host((uint64_t)stream_id, request_read_data_size);
+	}
+
 	void Host_Interface_Base::Send_read_message_to_host(uint64_t addresss, unsigned int request_read_data_size)
 	{
 		Host_Components::PCIe_Message* pcie_message = new Host_Components::PCIe_Message;

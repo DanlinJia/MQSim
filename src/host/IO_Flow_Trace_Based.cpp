@@ -56,6 +56,7 @@ Host_IO_Request *IO_Flow_Trace_Based::Generate_next_request()
 		request->Start_LBA = start_lsa_on_device + request->Start_LBA % (end_lsa_on_device - start_lsa_on_device);
 	}
 
+	request->Status = Host_IO_Request_Status::WAITING;
 	request->Arrival_time = time_offset + Simulator->Time();
 	STAT_generated_request_count++;
 

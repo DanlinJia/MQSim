@@ -32,9 +32,10 @@ stream_id_type Input_Stream_Manager_NVMe::Create_new_stream(IO_Flow_Priority_Cla
 	}
 	Input_Stream_NVMe *input_stream = new Input_Stream_NVMe(priority_class, start_logical_sector_address, end_logical_sector_address,
 															submission_queue_base_address, submission_queue_size, completion_queue_base_address, completion_queue_size);
+	stream_id_type stream_id = (stream_id_type)(this->input_streams.size() - 1);
 	this->input_streams.push_back(input_stream);
 
-	return (stream_id_type)(this->input_streams.size() - 1);
+	return stream_id;
 }
 
 inline void Input_Stream_Manager_NVMe::Read_submission_queue_tail_pointer_update(stream_id_type stream_id, uint16_t tail_pointer_value)
@@ -289,7 +290,7 @@ void Input_Stream_Manager_NVMe::segment_user_request(User_Request *user_request)
 	}
 }
 
-Request_Fetch_Unit_NVMe::Request_Fetch_Unit_NVMe(Host_Interface_Base *host_interface) : Request_Fetch_Unit_Base(host_interface), current_phase(0xffff), number_of_sent_cqe(0) {Set_queue_token(2, 1);}
+Request_Fetch_Unit_NVMe::Request_Fetch_Unit_NVMe(Host_Interface_Base *host_interface) : Request_Fetch_Unit_Base(host_interface), current_phase(0xffff), number_of_sent_cqe(0) {}
 
 void Request_Fetch_Unit_NVMe::Process_pcie_write_message(uint64_t address, void *payload, unsigned int payload_size)
 {
@@ -420,13 +421,6 @@ void Request_Fetch_Unit_NVMe::Process_pcie_read_message(uint64_t address, void *
 	delete dma_req_item;
 }
 
-void Request_Fetch_Unit_NVMe::Set_queue_token(uint8_t read_token_value, uint8_t write_token_value)
-{
-	read_queue_token = read_token_value;
-	write_queue_token = write_token_value;
-	read_token = read_token_value;
-	write_token = write_token_value;
-}
 
 void Request_Fetch_Unit_NVMe::Fetch_next_request(stream_id_type stream_id)
 {
@@ -437,21 +431,7 @@ void Request_Fetch_Unit_NVMe::Fetch_next_request(stream_id_type stream_id)
 
 	Host_Interface_NVMe *hi = (Host_Interface_NVMe *)host_interface;
 	Input_Stream_NVMe *im = ((Input_Stream_NVMe *)hi->input_stream_manager->input_streams[stream_id]);
-	if (read_token == 0) 
-	{
-		if (write_token == 0) 
-		{
-			read_token = read_queue_token - 1;
-			write_token = write_queue_token;
-			host_interface->Send_read_message_to_host(im->Read_queue.Submission_queue_base_address + im->Read_queue.Submission_head * sizeof(Submission_Queue_Entry), sizeof(Submission_Queue_Entry));
-		} else {
-			write_token--;
-			host_interface->Send_read_message_to_host(im->Write_queue.Submission_queue_base_address + im->Write_queue.Submission_head * sizeof(Submission_Queue_Entry), sizeof(Submission_Queue_Entry));
-		}
-	} else {
-		read_token--;
-		host_interface->Send_read_message_to_host(im->Read_queue.Submission_queue_base_address + im->Read_queue.Submission_head * sizeof(Submission_Queue_Entry), sizeof(Submission_Queue_Entry));
-	}
+	host_interface->Send_fetch_message_to_host((uint64_t)stream_id, sizeof(Submission_Queue_Entry));
 }
 
 void Request_Fetch_Unit_NVMe::Fetch_write_data(User_Request *request)

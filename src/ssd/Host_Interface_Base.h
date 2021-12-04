@@ -38,6 +38,7 @@ namespace SSD_Components
 		unsigned int STAT_number_of_write_requests;
 		unsigned int STAT_number_of_read_transactions;
 		unsigned int STAT_number_of_write_transactions;
+		stream_id_type Stream_id;
 		sim_time_type STAT_sum_of_read_transactions_execution_time, STAT_sum_of_read_transactions_transfer_time, STAT_sum_of_read_transactions_waiting_time;
 		sim_time_type STAT_sum_of_write_transactions_execution_time, STAT_sum_of_write_transactions_transfer_time, STAT_sum_of_write_transactions_waiting_time;
 	};
@@ -121,6 +122,7 @@ namespace SSD_Components
 		}
 	
 		void Send_read_message_to_host(uint64_t addresss, unsigned int request_read_data_size);
+		void Send_fetch_message_to_host(uint64_t stream_id, unsigned int request_read_data_size);
 		void Send_write_message_to_host(uint64_t addresss, void* message, unsigned int message_size);
 
 		HostInterface_Types GetType() { return type; }
