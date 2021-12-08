@@ -54,6 +54,8 @@ namespace Host_Components
 			switch (SSD_device_type) {
 				case HostInterface_Types::NVME:
 				{
+					std::ofstream myfile;
+					myfile.open ("scheduler_tracker", std::ios::app);
 					uint16_t flow_id;
 					if (address<SUBMISSION_QUEUE_MEMORY_1) 
 					{
@@ -75,6 +77,7 @@ namespace Host_Components
 							flow->read_queue_token_on_hand--;
 							next_type = Host_IO_Request_Type::READ;
 						}
+						myfile << "read token, " << (int)flow->read_queue_token_on_hand << " , write token, " << (int)flow->write_queue_token_on_hand << "\n";
 						new_pcie_message->Address = -1;
 						int64_t index=-1;
 						while (new_pcie_message->Address == -1)
@@ -83,17 +86,21 @@ namespace Host_Components
 							{
 								index = flow->Next_waiting_req(flow->read_request_queue_in_memory, flow->nvme_queue_pair.Read_sq.Submission_queue_head);
 								if (index==-1) {
+									myfile << "no req in read sq\n";
 									next_type = Host_IO_Request_Type::WRITE;
 									continue;
 								}
+								myfile << "read, " << index << ", " << Simulator->Time()<<"\n";
 								new_pcie_message->Address = flow->nvme_queue_pair.Read_sq.Submission_queue_memory_base_address + index*sizeof(Submission_Queue_Entry);						
 								flow->read_request_queue_in_memory[index]->Status = Host_IO_Request_Status::ACTIVE;
 							} else {
 								index = flow->Next_waiting_req(flow->write_request_queue_in_memory, flow->nvme_queue_pair.Write_sq.Submission_queue_head);
 								if (index==-1) {
+									myfile << "no req in write sq\n";
 									next_type = Host_IO_Request_Type::READ;
 									continue;
 								}
+								myfile << "write, " << index << ", " << Simulator->Time()<<"\n";
 								new_pcie_message->Address = flow->nvme_queue_pair.Write_sq.Submission_queue_memory_base_address + index*sizeof(Submission_Queue_Entry);						
 								flow->write_request_queue_in_memory[index]->Status = Host_IO_Request_Status::ACTIVE;
 							}
@@ -106,6 +113,7 @@ namespace Host_Components
 					}
 					new_pcie_message->Payload = (*IO_flows)[flow_id]->NVMe_read_sqe(new_pcie_message->Address);
 					new_pcie_message->Payload_size = sizeof(Submission_Queue_Entry);
+					myfile.close();
 					break;
 				}
 				case HostInterface_Types::SATA:

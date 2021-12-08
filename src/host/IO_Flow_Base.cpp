@@ -47,7 +47,7 @@ IO_Flow_Base::IO_Flow_Base(const sim_object_id_type &name, uint16_t flow_id, LHA
 		nvme_queue_pair.Completion_queue_head = 0;
 		nvme_queue_pair.Completion_queue_tail = 0;
 
-		Set_queue_token(2, 1);
+		Set_queue_token(1, 4);
 		//id = 0: admin queues, id = 1 to 8, normal I/O queues
 		switch (io_queue_id)
 		{
