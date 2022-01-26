@@ -1,4 +1,3 @@
-<?xml version="1.0" encoding="us-ascii"?>
 <MQSim_IO_Scenarios>
 	<IO_Scenario>
 		<IO_Flow_Parameter_Set_Trace_Based>
@@ -9,7 +8,7 @@
 			<Die_IDs>0,1</Die_IDs>
 			<Plane_IDs>0,1</Plane_IDs>
 			<Initial_Occupancy_Percentage>70</Initial_Occupancy_Percentage>
-			<File_Path>/home/labuser/Downloads/MQSim/traces/tpcc-small.trace</File_Path>
+			<File_Path>./tmp</File_Path>
 			<Percentage_To_Be_Executed>100</Percentage_To_Be_Executed>
 			<Relay_Count>1</Relay_Count>
 			<Time_Unit>NANOSECOND</Time_Unit>
