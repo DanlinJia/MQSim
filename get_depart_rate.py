@@ -220,7 +220,7 @@ def plot_runtime_onservice_rate(log_folder, bucket_size=1e6):
     return trace_df
 
 bucket_size=1e6
-log_folder='/home/labuser/Downloads/MQSim/logs/3us_4096B_50000/1:1RW_3us_4096B_50000/weights_to_write'
+log_folder='/home/labuser/Downloads/MQSim/logs/3us_4096B_50000'
 # ret_df = get_statistic_df(log_folder)
 
 

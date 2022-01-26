@@ -324,9 +324,10 @@ namespace SSD_Components
 							evicted_slot.LPA, NULL, IO_Flow_Priority_Class::URGENT, evicted_slot.Content, evicted_slot.State_bitmap_of_existing_sectors, evicted_slot.Timestamp));
 						cache_eviction_read_size_in_sectors += count_sector_no_from_status_bitmap(evicted_slot.State_bitmap_of_existing_sectors);
 						//DEBUG2("Evicting page" << evicted_slot.LPA << " from write buffer ")
-					} else {
-						// DEBUG-Danlin
-						break;	
+					} 
+					// DEBUG-Danlin
+					else {
+						break;
 					}
 				}
 				per_stream_cache[tr->Stream_id]->Insert_write_data(tr->Stream_id, tr->LPA, tr->Content, tr->DataTimeStamp, tr->write_sectors_bitmap);
