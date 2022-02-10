@@ -1,3 +1,4 @@
+import imp
 import os
 import multiprocessing
 import subprocess
@@ -7,6 +8,7 @@ import numpy as np
 from datetime import datetime
 import matplotlib.pyplot as plt
 import matplotlib
+from xmanager import *
 
 def number_generator(dist_args: dict):
     if 'dist_name' not in dist_args:
@@ -58,30 +60,38 @@ def generator(interarrival_mean, size, num, iotype, volume_id=0, target_id=0):
     df["Size"] = (np.array([number_generator(size_dist_args)/512 for i in range(num)]).astype(int)+ 1)*512
     interarrival_list = np.array([number_generator(interarrival_dist_args) for i in range(num-1)])
     # interarrival_list = np.array([number_generator(interarrival_dist_args) for i in range(num)])
-    df["ArrivalTime"] = (np.insert(np.cumsum(interarrival_list), 0, 0)*1e9).astype(int)
+    df["ArrivalTime"] = (np.insert(np.cumsum(interarrival_list), 0, 0)).astype(int)
     # fake data
     df["DelayTime"] = df["ArrivalTime"]
     df["FinishTime"] = df["ArrivalTime"]
     return df
 
-def generate_trace(interarrival_mean, size, num, output_folder, ratio, name):
-    #Type_of_Requests[0 for write, 1 for read]
+def generate_trace(interarrival_mean, size, num, ratio, trace_path):
+    #Type_of_Requests[1 for write, 0 for read]
     df = pd.DataFrame(columns=["ArrivalTime", "VolumeID", "Offset", "Size", "IOType"])
+    num = num.num
+    ratio = ratio.num
     num_read = int(num*ratio)
     num_write = num - num_read
-    read_df = generator(interarrival_mean, size, num_read, 1 )
-    write_df = generator(interarrival_mean, size, num_write, 0)
-    mix_df = pd.concat([read_df, write_df])
+    interarrival_mean = eu.ns(interarrival_mean).num
+    size = eu.Byte(size).num
+    if ratio==0:
+        mix_df = generator(interarrival_mean, size, num_write, 1)
+    elif ratio==1:
+        mix_df = generator(interarrival_mean, size, num_read, 0)
+    else:
+        read_df = generator(interarrival_mean, size, num_read, 0 )
+        write_df = generator(interarrival_mean/(1/ratio-1), size, num_write, 1)
+        mix_df = pd.concat([read_df, write_df])
+        read_df["RequestID"] = np.array(range(len(read_df)))
+        write_df["RequestID"] = np.array(range(len(write_df)))
     mix_df = mix_df.sort_values(by=["ArrivalTime"])
     mix_df.index = range(len(mix_df))
-    read_df["RequestID"] = np.array(range(len(read_df)))
-    write_df["RequestID"] = np.array(range(len(write_df)))
     mix_df["RequestID"] = np.array(range(len(mix_df)))
-    path = os.path.join(output_folder, name)
-    if not os.path.exists(output_folder):
-        os.system("mkdir -p {}".format(output_folder))
-    mix_df.to_csv(path, header=True, index=False, sep=",")
-    return name
+    if not os.path.exists(trace_path.parent):
+        os.system("mkdir -p {}".format(trace_path.parent))
+    mix_df.to_csv(trace_path, header=True, index=False, sep=",")
+
     # names = []
     # for (prefix, df) in [('mix_', mix_df), ('read_', read_df), ('write_', write_df)]:
     #     path = os.path.join(output_folder, prefix+name)
@@ -91,13 +101,27 @@ def generate_trace(interarrival_mean, size, num, output_folder, ratio, name):
     #     names.append(prefix+name)
     # return names
 
-# if __name__ == "__main__":
-#     experiment_name = "test"
-#     interarrival_mean = 1e-5 #10 us
-#     size = 4096
-#     num = 100000
-#     # df = generator(interarrival_mean, size, num, iotype, volume_id=0, target_id=0)
-#     output_folder = "traces/{}".format(experiment_name)
-#     if not os.path.exists(output_folder):
-#         os.system("mkdir -p {}".format(output_folder))
-#     generate_trace(interarrival_mean, size, num, output_folder, ratio=0.5)
+if __name__ == "__main__":
+    # unit test
+    eu = experiment_unit()
+    trace_attri_dict = {
+        "ratio": eu.ratio(0.5),
+        "inter_arrival": eu.us(1),
+        "size": eu.Byte(512),
+        "req": eu.req_num(50000),
+        "rw": eu.rw(1),
+        "ww": eu.ww(1)
+    }
+    ep = xmanager(trace_attri_dict, {}, pl.Path("log"), pl.Path("trace"), "test")
+    
+    def generate_trace_test(ep: xmanager, over_write: bool):
+        # generate workload if not existing
+        trace_name = ep.input_folder/ep.trace_name.with_suffix(".csv")
+        interarrival_mean = ep.attri["inter_arrival"].num #s
+        size = ep.attri["size"].num
+        n = ep.attri["req"].num
+        ratio = ep.attri["ratio"].num
+        if (not ep.input_folder.exists()) or over_write:
+            generate_trace(interarrival_mean, int(size), n, ratio, trace_name)
+    
+    generate_trace_test(ep, False)

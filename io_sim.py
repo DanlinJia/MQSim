@@ -108,6 +108,7 @@ class ssd_simulator:
         intermedia_path = self.ssd_in_trace
         # read the output of network simulator
         net_df = pd.read_csv(self.net_out_trace, header=0)
+        net_df = net_df.dropna()
         trace_df = net_df.loc[:, ["RequestID","ArrivalTime", "VolumeID", "Offset", "Size", "IOType", "TargetID"]]
         trace_df = trace_df.sort_values(by=["ArrivalTime"])
         trace_df.loc[:, "Size"] = trace_df.Size.apply(lambda x: int(x/512))

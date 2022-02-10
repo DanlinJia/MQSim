@@ -70,7 +70,7 @@ Host_System::Host_System(Host_Parameter_Set* parameters, bool preconditioning_re
 					flow_param->File_Path, flow_param->Time_Unit, flow_param->Relay_Count, flow_param->Percentage_To_Be_Executed,
 					ssd_host_interface->GetType(), this->PCIe_root_complex, this->SATA_hba,
 					parameters->Enable_ResponseTime_Logging, parameters->ResponseTime_Logging_Period_Length, parameters->Input_file_path + ".IO_Flow.No_" + std::to_string(flow_id) + ".log");
-
+				io_flow->Set_queue_token(parameters->Read_Weights, parameters->Write_Weights);
 				this->IO_flows.push_back(io_flow);
 				break;
 			}

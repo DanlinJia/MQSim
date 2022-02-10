@@ -1,8 +1,9 @@
 # from ssd_simulator import *
 from io_sim import *
-from synthetic_generator_dl import *
+from xmanager import *
 import argparse
 import pathlib
+from synthetic_generator_dl import *
 
 def run_workload(workload, log_folder):
     ori = pd.read_csv(workload)
@@ -16,7 +17,7 @@ def run_workload(workload, log_folder):
     if not os.path.exists(log_folder):
         os.system("mkdir -p {}".format(log_folder))
     path = pathlib.PurePath(log_folder)
-    df.to_csv(os.path.join(log_folder, "{}_results.csv".format(path.name)))
+    df.to_csv(os.path.join(log_folder, "{}_results.csv".format(os.path.basename(log_folder))))
     os.system("./clear_log.sh {} {}".format(log_folder, "."))
     shutil.copy("/home/labuser/Downloads/MQSim/workload.trace_scenario_1.xml", log_folder)
 
@@ -41,36 +42,106 @@ def cdfplot(data, bin_num):
     cdf = np.cumsum(counts)
     return bin_edges[1:], cdf / cdf[-1]
 
+def set_weights(r, w):
+    config = "ssdconfig.test.xml"
+    tree = et.parse(config)
+    tree.find('Host_Parameter_Set/Read_Weights').text = str(r)
+    tree.find('Host_Parameter_Set/Write_Weights').text = str(w)
+    tree.write(config)
+
+# def execute_workload(args):
+#     if len(args.input_name)!=0:
+#         experiment_name = args.input_name
+#         output_folder = os.path.join("traces", args.output_name)
+#         log_folder = os.path.join("logs", args.output_name)
+#         run_workload(experiment_name, log_folder)
+#     else:
+#         interarrival_mean = args.interarrival #s
+#         size = args.size
+#         num = args.num
+#         name_dict = {0.5:"1:1RW", 0.8:"4:1RW", 0.2:"1:4RW", 0:"W", 1:"R", 0.75:"3:1RW", 0.25:"1:3RW", 0.4:"2:3RW", 0.6:"3:2RW"}
+#         trace_name = "{}_{}us_{}B_{}.csv".format(name_dict[args.ratio], int(interarrival_mean*1e6), int(size), num)
+#         experiment_name = "{}us_{}B_{}".format(int(interarrival_mean*1e6), int(size), num)
+#         # df = generator(interarrival_mean, size, num, iotype, volume_id=0, target_id=0)
+#         output_folder = "traces/{}".format(experiment_name)
+#         workload  = os.path.join(output_folder, trace_name)
+#         if (not os.path.exists(workload)) or args.over_write:
+#             generate_trace(interarrival_mean, int(size), num, output_folder, ratio=args.ratio, name=trace_name)
+#         log_folder = os.path.join("logs", experiment_name, trace_name.split("_")[0], experiment_name+"_rw_{}_{}".format(args.read_weight, args.write_weight))
+#         run_workload(workload, log_folder)
+
+def execute_workload(ep: xmanager):
+    # generate workload if not existing
+    workload = ep.input_folder/ep.trace_name.with_suffix(".csv")
+    interarrival_mean = ep.attri["inter_arrival"]
+    size = ep.attri["size"]
+    n = ep.attri["req"]
+    ratio = ep.attri["ratio"]
+    if (not os.path.exists(workload)) or args.over_write:
+        generate_trace(interarrival_mean, int(size), n, ratio, workload)
+    run_workload(workload, ep.output_folder)
 
 if __name__=="__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument("--input_name", "-i", default="")
-    parser.add_argument("--output_name", "-o", default="")
+    parser.add_argument("--trace_folder", "-tf", default="trace")
+    parser.add_argument("--log_folder", "-lf", default="logs")
+    parser.add_argument("--over_write", '-ow', dest='over_write', action='store_true')
     parser.add_argument("--interarrival", "-a", default=0, type=float)
     parser.add_argument("--size", "-s", default=0, type=float)
-    parser.add_argument("--num", "-n", default=0, type=int)
+    parser.add_argument("--num", "-n", default=50000, type=int)
     parser.add_argument("--ratio", '-r', default=0.5, type=float)
+    parser.add_argument("--read_weight", '-rw', default=1, type=int)
+    parser.add_argument("--write_weight", '-ww', default=1, type=int)
+    parser.add_argument("--round_test", '-rt', dest='do_round_test', action='store_true')
     # parser.add_argument("--dry_run", '-d', default=False, type=bool)
     args = parser.parse_args()
 
-    if len(args.input_name)!=0:
-        experiment_name = args.input_name
-        output_folder = os.path.join("traces", args.output_name)
-        log_folder = os.path.join("logs", args.output_name)
-        run_workload(experiment_name, log_folder)
+    set_weights(1, 1)
+    if args.do_round_test:
+        inter_arrival_list = [0.000001, 0.000002, 0.000004, 0.000006]
+        # inter_arrival_list = [0.000004]
+        # size_list = [2048, 2048*2, 2048*4, 2048*6]
+        size = 8192
+        ratio = [0.2, 0.3, 0.4, 0.6, 0.7, 0.8]
+        write_weight = [1, 5, 10, 20, 50, 100]
+
+        for arrival in inter_arrival_list:
+            for r in ratio:
+                args.interarrival = arrival
+                args.size = size
+                args.ratio = r
+                for ww in write_weight:
+                    set_weights(1, ww)
+                    args.write_weight = ww
+                    trace_attri_dict = {
+                            "ratio": eu.ratio(args.ratio),
+                            "inter_arrival": eu.us(eu.s(args.interarrival)),
+                            "size": eu.Byte(args.size),
+                            "req": eu.req_num(args.num),
+                            "rw": eu.rw(args.read_weight),
+                            "ww": eu.ww(args.write_weight)
+                    }
+                    ep = xmanager(trace_attri_dict, {},
+                                 pl.Path(args.log_folder), pl.Path(args.trace_folder),
+                                 ["inter_arrival", "size", "req"])
+                    try:
+                        execute_workload(ep)
+                    except Exception as e:
+                        print(e, "\nhappens at arrival {} size {} for weights {}".format(arrival, size, [1, ww]))
     else:
-        interarrival_mean = args.interarrival #s
-        size = args.size
-        num = args.num
-        name_dict = {0.5:"1:1RW", 0.8:"4:1RW", 0.2:"1:4RW", 0:"W", 1:"R", 0.75:"3:1RW", 0.25:"1:3RW", 0.4:"2:3RW", 0.6:"3:2RW"}
-        name = "{}_{}us_{}B_{}.csv".format(name_dict[args.ratio], int(interarrival_mean*1e6), int(size), num)
-        experiment_name = "{}us_{}B_{}".format(int(interarrival_mean*1e6), int(size), num)
-        # df = generator(interarrival_mean, size, num, iotype, volume_id=0, target_id=0)
-        output_folder = "traces/{}".format(experiment_name)
-        trace_name = generate_trace(interarrival_mean, int(size), num, output_folder, ratio=args.ratio, name=name)
-        workload  = os.path.join(output_folder, trace_name)
-        log_folder = os.path.join("logs", experiment_name, trace_name.split('.')[0])
-        run_workload(workload, log_folder)
+        trace_attri_dict = {
+                "ratio": eu.ratio(args.ratio),
+                "inter_arrival": eu.us(eu.s(args.interarrival)),
+                "size": eu.Byte(args.size),
+                "req": eu.req_num(args.num),
+                "rw": eu.rw(args.read_weight),
+                "ww": eu.ww(args.write_weight)
+        }
+        set_weights(args.read_weight, args.write_weight)
+        ep = xmanager(trace_attri_dict, {},
+                                 pl.Path(args.log_folder), pl.Path(args.trace_folder),
+                                 ["inter_arrival", "size", "req"])
+        execute_workload(ep)
 
 
     # filename = "test"
@@ -124,26 +195,3 @@ if __name__=="__main__":
     # plt.plot(edges, cdf)
     # plt.savefig(filename + "_cdf.png")
     
-
-
-
-
-    # def ssd_simulation_iter(self, arrival_time):
-    #     intermedia_file = self.net_out_trace
-    #     intermedia_path = self.ssd_in_trace
-    #     now = datetime.now()
-    #     time = now.strftime("%H:%M:%S")
-    #     os.system("cp {} {}".format(intermedia_file, intermedia_file+"_"+time))
-    #     net_df = pd.read_csv(intermedia_file, header=0)
-    #     trace_df = net_df[["RequestID","ArrivalTime", "InitiatorID", "Offset", "Size", "IOType"]]
-    #     trace_df = trace_df.sort_values(by=["ArrivalTime"])
-    #     trace_df.loc[:, "Size"] = trace_df.Size.apply(lambda x: int(x/512))
-    #     trace_df.drop(["RequestID"], axis=1).to_csv(path_or_buf=intermedia_path, sep=" ", header=False, index=False)
-    #     new_df, distance = self.run_SSD_sim(intermedia_path, self.output_folder, self.output_path, trace_df = trace_df, old_df = net_df)
-    #     new_df = net_df[["RequestID", "InitiatorID", "TargetID"]].merge(new_df, left_on="RequestID", right_on="RequestID")
-    #     self.distances["DelayTime"].append(distance["DelayTime"])
-    #     self.distances["FinishTime"].append(distance["FinishTime"])
-    #     new_df.loc[:, "ArrivalTime"] = arrival_time
-    #     new_df.to_csv(path_or_buf=self.output_path, sep=",", header=True, index=False)
-    #     names = ["RequestID", "ArrivalTime", "DelayTime", "FinishTime", "InitiatorID", "TargetID", "IOType", "Size", "InitiatorID", "Offset"]
-    #     return new_df[names]

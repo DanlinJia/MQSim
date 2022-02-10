@@ -1,19 +1,28 @@
+from builtins import int, range, sum
 from cmath import log
 import pandas as pd
 import numpy as np
 import os
 import matplotlib.pyplot as plt
+import matplotlib
 
+
+def get_trace_files(log_folder, inner_key_func=lambda f: True, outer_key_func=lambda f: False):
+    trace_files = []
+    for root, dirs, files in os.walk(log_folder):
+        for f in files:
+            if inner_key_func(f) and not outer_key_func(f):
+                trace_files.append(os.path.join(root, f))
+    trace_files.sort()
+    return trace_files
 
 def get_statistic_df(log_folder='/home/labuser/Downloads/MQSim/logs/short_lat_test'):
     # multi-level column can be created from tuples, regardless of what the original column names, e.g., ['a', 'b', 'c', 'd', 'e']
     ret_df = pd.DataFrame(columns=['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i'])
     ret_df.columns=pd.MultiIndex.from_tuples([("test", ""), ("read", "throughput"), ("read", "ave_lat"), ("read", "last_lat"), ("read", "90th_lat"), ("write", "throughput"), ("write", "ave_lat"), ("write", "last_lat"), ("write", "90th_lat")])
-
-
     for root, dirs, files in os.walk(log_folder):
         for f in files:
-            if ".csv" in f:
+            if "results.csv" in f:
                 path = os.path.join(root, f)
                 df = pd.read_csv(path)
                 r_df=df[df.IOType==0]
@@ -29,16 +38,10 @@ def get_statistic_df(log_folder='/home/labuser/Downloads/MQSim/logs/short_lat_te
     print(ret_df)
     return ret_df
 
-def plot_runtime_throughput(log_folder='/home/labuser/Downloads/MQSim/logs/short_lat_test', bucket_size=1e6):
+def plot_runtime_throughput(log_folder, inner_key_func=lambda f: True, outer_key_func=lambda f: False, bucket_size=1e6):
     figure, axs = plt.subplots(2)
-    trace_files = []
     trace_dirt = {}
-    for root, dirs, files in os.walk(log_folder):
-        for f in files:
-            if ".csv" in f:
-                trace_files.append(os.path.join(root, f))
-
-    trace_files.sort(key=lambda x: eval(x.split("_")[-2]))
+    trace_files = get_trace_files(log_folder, inner_key_func, outer_key_func)
     for f in trace_files:
         df = pd.read_csv(f)
         df = df.sort_values(by="FinishTime", ignore_index=True)
@@ -51,13 +54,6 @@ def plot_runtime_throughput(log_folder='/home/labuser/Downloads/MQSim/logs/short
         trace_dirt[f] = [r_tpt.runtime_throughput, w_tpt.runtime_throughput]
         marker = ''
         linestyle = "solid"
-        # if '1_to_1' in f:
-        #     marker = 'x'
-        #     linestyle = "solid"
-        # else:
-        #     if '_to_1' in f and (not '1_to_1' in f):
-        #         linestyle = "dashed"
-
         axs[0].plot(r_tpt.runtime_throughput, label=os.path.basename(f).split(".")[0], marker=marker, linestyle=linestyle)
         axs[1].plot(w_tpt.runtime_throughput, label=os.path.basename(f).split(".")[0], marker=marker, linestyle=linestyle)
 
@@ -75,15 +71,9 @@ def plot_runtime_throughput(log_folder='/home/labuser/Downloads/MQSim/logs/short
     plt.savefig(os.path.join(log_folder, "tpt.png"))
     return trace_dirt
 
-def plot_runtime_arrival_rate(log_folder, bucket_size=1e6):
+def plot_runtime_arrival_rate(log_folder, inner_key_func=lambda f: True, outer_key_func=lambda f: False, bucket_size=1e6):
     figure, axs = plt.subplots(2)
-    trace_files = []
-    for root, dirs, files in os.walk(log_folder):
-        for f in files:
-            if ".csv" in f:
-                trace_files.append(os.path.join(root, f))
-
-    trace_files.sort()
+    trace_files = get_trace_files(log_folder, inner_key_func, outer_key_func)
     for f in trace_files:
         df = pd.read_csv(f)
         df = df.sort_values(by="ArrivalTime", ignore_index=True)
@@ -94,13 +84,6 @@ def plot_runtime_arrival_rate(log_folder, bucket_size=1e6):
         w_rate = w_df.groupby(["time_ms"]).count()
         marker = ''
         linestyle = "solid"
-        # if '1_to_1' in f:
-        #     marker = 'x'
-        #     linestyle = "solid"
-        # else:
-        #     if '_to_1' in f and (not '1_to_1' in f):
-        #         linestyle = "dashed"
-
         axs[0].plot(r_rate.ArrivalTime, label=os.path.basename(f).split(".")[0], marker=marker, linestyle=linestyle)
         axs[1].plot(w_rate.ArrivalTime, label=os.path.basename(f).split(".")[0], marker=marker, linestyle=linestyle)
         break
@@ -115,18 +98,12 @@ def plot_runtime_arrival_rate(log_folder, bucket_size=1e6):
     plt.legend()
     plt.savefig(os.path.join(log_folder, "rate.png"))
 
-def plot_throughput_summary(log_folder='/home/labuser/Downloads/MQSim/logs/short_lat_test', bucket_size=1e6, quantile=0.5):
+def plot_throughput_summary(log_folder, inner_key_func=lambda f: True, outer_key_func=lambda f: False, bucket_size=1e6, quantile=0.5, scale="linear"):
+    # bar plot shows the throughput of each experiment 
     figure, axs = plt.subplots(2)
-    trace_files = []
-    tpt_df = pd.DataFrame(columns=['f', 'r', 'w'])
-    for root, dirs, files in os.walk(log_folder):
-        for f in files:
-            if ".csv" in f:
-                trace_files.append(os.path.join(root, f))
-
-    trace_files.sort(key=lambda x: eval(x.split("_")[-2]))
+    tpt_df = pd.DataFrame(columns=["f", "r", "w"])
+    trace_files = get_trace_files(log_folder, inner_key_func, outer_key_func)
     for f in trace_files:
-
         df = pd.read_csv(f)
         df = df.sort_values(by="FinishTime", ignore_index=True)
         df["runtime_throughput"] = df.Size/df.DelayTime * 8 # Gbps 
@@ -137,18 +114,54 @@ def plot_throughput_summary(log_folder='/home/labuser/Downloads/MQSim/logs/short
         w_tpt = w_df.groupby(["time_ms"]).sum()
         r = r_tpt.runtime_throughput.quantile(quantile)
         w = w_tpt.runtime_throughput.quantile(quantile)
-        tpt_df.loc[len(tpt_df), :] = [os.path.basename(f)[4:-12], r, w]
+        tpt_df.loc[len(tpt_df), :] = [os.path.basename(f)[:-12], r, w]
         marker = '*'
         linestyle = "solid"
-        # if '1_to_1' in f:
-        #     marker = 'x'
-        #     linestyle = "solid"
-        # else:
-        #     if '_to_1' in f and (not '1_to_1' in f):
-        #         linestyle = "dashed"
+        axs[0].bar(tpt_df.f, tpt_df.r, label=os.path.basename(f).split(".")[0],)
+        axs[1].bar(tpt_df.f, tpt_df.w, label=os.path.basename(f).split(".")[0], )
 
-    axs[0].bar(tpt_df.f, tpt_df.r, label=os.path.basename(f).split(".")[0],)
-    axs[1].bar(tpt_df.f, tpt_df.w, label=os.path.basename(f).split(".")[0], )
+    axs[0].set_ylabel("throughput (Gbps)")
+    axs[0].set_title("read")
+    axs[0].set_yscale(scale)
+    
+    axs[1].set_ylabel("throughput (Gbps)")
+    axs[1].set_title("write")
+    axs[1].set_xlabel("time bin with size {} ns".format(int(bucket_size)))
+    axs[1].set_yscale(scale)
+
+    figure.set_size_inches(12, 8)
+    plt.legend()
+    plt.savefig(os.path.join(log_folder, "tpt_summary.png"))
+    return tpt_df
+
+
+def plot_runtime_tpt_v2(log_folder, inner_key_func=lambda f: True, outer_key_func=lambda f: False, bucket_size=1e6, quantile=0.3):
+    figure, axs = plt.subplots(2)
+    tpt_df = pd.DataFrame(columns=['f', 'r', 'w'])
+    runtime_tpt_df = pd.DataFrame(columns=['time', 'r', 'w'])
+    trace_files = get_trace_files(log_folder, inner_key_func, outer_key_func)
+    for f in trace_files:
+        df = pd.read_csv(f)
+        for idx in df.index:
+            win_start = int(df.loc[idx, "ArrivalTime"].item()/bucket_size)
+            win_finish = int(df.loc[idx, "FinishTime"].item()/bucket_size)+1
+            ave_tpt = df.loc[idx, "Size"].item()/(win_finish-win_start)
+            for time_window in range(win_start, win_finish):
+                if df.loc[idx, "IOType"].item()==0:
+                    runtime_tpt_df.loc[len(runtime_tpt_df), :] = [time_window, ave_tpt, 0]
+                else:
+                    runtime_tpt_df.loc[len(runtime_tpt_df), :] = [time_window, 0, ave_tpt]
+
+        sum_runtime_tpt_df = runtime_tpt_df.groupby(["time"]).sum()
+        r = sum_runtime_tpt_df.r.quantile(quantile)
+        w = sum_runtime_tpt_df.w.quantile(quantile)
+
+        tpt_df.loc[len(tpt_df), :] = [os.path.basename(f)[:-12], r, w]
+        marker = '*'
+        linestyle = "solid"
+        axs[0].bar(tpt_df.index, tpt_df.r, label=os.path.basename(f).split(".")[0],)
+        axs[1].bar(tpt_df.index, tpt_df.w, label=os.path.basename(f).split(".")[0], )
+
 
     axs[0].set_ylabel("throughput (Gbps)")
     axs[0].set_title("read")
@@ -161,17 +174,12 @@ def plot_throughput_summary(log_folder='/home/labuser/Downloads/MQSim/logs/short
 
     figure.set_size_inches(12, 8)
     plt.legend()
-    plt.savefig(os.path.join(log_folder, "tpt_summary.png"))
+    plt.savefig(os.path.join(log_folder, "run_time_tpt.png"))
+    return tpt_df
 
-
-def plot_runtime_onservice_rate(log_folder, bucket_size=1e6):
-    trace_files = []
-    for root, dirs, files in os.walk(log_folder):
-        for f in files:
-            if "scheduler" in f:
-                trace_files.append(os.path.join(root, f))
+def plot_runtime_onservice_rate(log_folder, inner_key_func=lambda f: True, outer_key_func=lambda f: False, bucket_size=1e6):
     figure, axs = plt.subplots(3)
-    trace_files.sort()
+    trace_files = get_trace_files(log_folder, inner_key_func, outer_key_func)
     for f in trace_files:
         with open(f, "r") as scheduler_trace:
             lines = scheduler_trace.read().splitlines()
@@ -189,13 +197,6 @@ def plot_runtime_onservice_rate(log_folder, bucket_size=1e6):
         r_w_rate_ratio = r_rate.idx/w_rate.idx
         marker = ''
         linestyle = "solid"
-        # if '1_to_1' in f:
-        #     marker = 'x'
-        #     linestyle = "solid"
-        # else:
-        #     if '_to_1' in f and (not '1_to_1' in f):
-        #         linestyle = "dashed"
-
         axs[0].plot(r_rate.idx, label=f.split("/")[-2], marker=marker, linestyle=linestyle)
         axs[1].plot(w_rate.idx, label=f.split("/")[-2], marker=marker, linestyle=linestyle)
         # plot the number of requets on servive for w/r
@@ -220,19 +221,104 @@ def plot_runtime_onservice_rate(log_folder, bucket_size=1e6):
     return trace_df
 
 bucket_size=1e6
-log_folder='/home/labuser/Downloads/MQSim/logs/3us_4096B_50000'
+log_folder='/home/labuser/Downloads/MQSim/logs'
 # ret_df = get_statistic_df(log_folder)
 
 
 # plot_runtime_arrival_rate(log_folder, bucket_size=1e6)
-trace_dirt = plot_runtime_throughput(log_folder, bucket_size=bucket_size)
-plot_runtime_onservice_rate(log_folder, bucket_size=bucket_size)
-plot_throughput_summary(log_folder, bucket_size=bucket_size, quantile=0.3)
+# trace_dirt = plot_runtime_tpt_v2(log_folder, bucket_size=bucket_size)
+# plot_runtime_onservice_rate(log_folder, bucket_size=bucket_size)
+inner_key_func =lambda x: np.all([key in x for key in ["results.csv"]])
+outer_key_func=lambda f: f.startswith("W") or f.startswith("R") or ("1:3RW" in f) or ("3:1RW" in f)
+tpt_df = plot_throughput_summary(log_folder,inner_key_func, outer_key_func,bucket_size=bucket_size, quantile=0.3)
+# plot_runtime_throughput(log_folder, ["6us", "5ww"], bucket_size=bucket_size)
 
+def get_tpt_matrix_ratio(tpt_df):
+    name_dict = {"1:1RW":"50%", "4:1RW":"80%", "1:4RW":"20%", "W":"0%", "R":"100%", 
+                    "3:1RW":"75%", "1:3RW":"25%", "2:3RW":"40%", "3:2RW":"60%",
+                    "1:9RW":"10%", "9:1RW":"90%", "1:2RW":"30%", "2:1RW":"70%"}
+    tpt_df.to_csv(os.path.join(log_folder, "tpt_summary.csv"), index=False)
+    tpt_df = pd.read_csv(os.path.join(log_folder, "tpt_summary.csv"))
+    tpt_df["size"] = tpt_df.f.apply(lambda x: x.split("_")[2])
+    tpt_df["interarrival"] = tpt_df.f.apply(lambda x: x.split("_")[1])
+    tpt_df["ww"] = tpt_df.f.apply(lambda x: x.split("_")[-1][:-2]).astype(int)
+    tpt_df["ratio"] = tpt_df.f.apply(lambda x: name_dict[x.split("_")[0]])
+    names = tpt_df["ratio"].drop_duplicates().values
+    names = sorted(names)
+    arrival = tpt_df["interarrival"].drop_duplicates().values
+    arrival = sorted(arrival, key=lambda x: int(x[:-2]))
+    r_tpt = pd.DataFrame(columns = names, index = arrival)
+    w_tpt = pd.DataFrame(columns = names, index = arrival)
+    for i in tpt_df[tpt_df["ww"]=='1ww'].index:
+        r_tpt.loc[tpt_df.loc[i, 'interarrival'], tpt_df.loc[i, 'ratio']] = tpt_df.loc[i, 'r']
+        w_tpt.loc[tpt_df.loc[i, 'interarrival'], tpt_df.loc[i, 'ratio']] = tpt_df.loc[i, 'w']
+    return tpt_df, r_tpt, w_tpt
 
+def get_tpt_matrix(tpt_df):
+    tpt_df.to_csv(os.path.join(log_folder, "tpt_summary.csv"), index=False)
+    tpt_df = pd.read_csv(os.path.join(log_folder, "tpt_summary.csv"))
+    tpt_df["size"] = tpt_df.f.apply(lambda x: x.split("_")[1])
+    tpt_df["interarrival"] = tpt_df.f.apply(lambda x: x.split("_")[0])
+    tpt_df["ww"] = tpt_df.f.apply(lambda x: x.split("_")[-1])
 
+    names = tpt_df["size"].drop_duplicates().values
+    names = sorted(names, key=lambda x: int(x[:-1]))
+    arrival = tpt_df["interarrival"].drop_duplicates().values
+    arrival = sorted(arrival, key=lambda x: int(x[:-2]))
+    r_tpt = pd.DataFrame(columns = names, index = arrival)
+    w_tpt = pd.DataFrame(columns = names, index = arrival)
 
+    for i in tpt_df[tpt_df["ww"]=='1'].index:
+        r_tpt.loc[tpt_df.loc[i, 'interarrival'], tpt_df.loc[i, 'size']] = tpt_df.loc[i, 'r']
+        w_tpt.loc[tpt_df.loc[i, 'interarrival'], tpt_df.loc[i, 'size']] = tpt_df.loc[i, 'w']
 
+    return tpt_df, r_tpt, w_tpt
+
+def plot_tpt_across_weights(tpt_df):
+    tpt_df, r_tpt, w_tpt = get_tpt_matrix(tpt_df)
+    matplotlib.rcParams.update({'font.size': 16, 'font.weight':'normal'})
+    figure, axs = plt.subplots(len(r_tpt.index.values),len(r_tpt.keys().values))
+    for i, size in enumerate(r_tpt.keys().values):
+        for j, inter_arrival in enumerate(r_tpt.index.values):
+            y_r = tpt_df.loc[(tpt_df["size"]==size)&(tpt_df["interarrival"]==inter_arrival), ["r", "ww"]]
+            y_w = tpt_df.loc[(tpt_df["size"]==size)&(tpt_df["interarrival"]==inter_arrival), ["w", "ww"]]
+            axs[j, i].plot(y_r["ww"], y_r["r"], marker="o", label="read")
+            axs[j, i].plot(y_w["ww"], y_w["w"], marker="*", label="write")
+            axs[j, i].set_yscale("log")
+
+    for i, size in enumerate(r_tpt.keys().values):
+        axs[0, i].set_title(size)
+    for j, inter_arrival in enumerate(r_tpt.index.values):
+        axs[j, 0].set_ylabel(inter_arrival)
+
+    plt.legend()
+    figure.set_size_inches(32, 16)
+    plt.savefig("tpt_summary.png", dpi=100)
+
+def plot_tpt_across_weights_ratio(tpt_df):
+    tpt_df, r_tpt, w_tpt = get_tpt_matrix_ratio(tpt_df)
+    matplotlib.rcParams.update({'font.size': 16, 'font.weight':'normal'})
+    figure, axs = plt.subplots(len(r_tpt.index.values),len(r_tpt.keys().values))
+    for i, ratio in enumerate(r_tpt.keys().values):
+        for j, inter_arrival in enumerate(r_tpt.index.values):
+            y_r = tpt_df.loc[(tpt_df["ratio"]==ratio)&(tpt_df["interarrival"]==inter_arrival), ["r", "ww"]]
+            y_w = tpt_df.loc[(tpt_df["ratio"]==ratio)&(tpt_df["interarrival"]==inter_arrival), ["w", "ww"]]
+            y_r = y_r.sort_values(by=["ww"])
+            y_w = y_w.sort_values(by=["ww"])
+            axs[j, i].plot(y_r["ww"].astype(str), y_r["r"], marker="o", label="read")
+            axs[j, i].plot(y_w["ww"].astype(str), y_w["w"], marker="*", label="write")
+            axs[j, i].set_yscale("log")
+    for i, ratio in enumerate(r_tpt.keys().values):
+        axs[0, i].set_title(ratio)
+    for j, inter_arrival in enumerate(r_tpt.index.values):
+        axs[j, 0].set_ylabel(inter_arrival)
+    plt.legend()
+    figure.set_size_inches(24, 16)
+    plt.savefig("tpt_summary.png", dpi=100)
+
+plot_tpt_across_weights_ratio(tpt_df)
+
+# wait ratio plot
 # trace_df = trace_df.sort_values(by='idx', ignore_index=True)
 # response_df = response_df.sort_values(by='ArrivalTime', ignore_index=True)
 # read_response_df = response_df[response_df.IOType==0].reset_index(drop=True)
