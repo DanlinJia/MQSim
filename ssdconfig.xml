@@ -1,11 +1,12 @@
-<?xml version="1.0" encoding="us-ascii"?>
 <Execution_Parameter_Set>
 	<Host_Parameter_Set>
 		<PCIe_Lane_Bandwidth>1.00000</PCIe_Lane_Bandwidth>
 		<PCIe_Lane_Count>4</PCIe_Lane_Count>
 		<SATA_Processing_Delay>400000</SATA_Processing_Delay>
-		<Enable_ResponseTime_Logging>false</Enable_ResponseTime_Logging>
+		<Enable_ResponseTime_Logging>true</Enable_ResponseTime_Logging>
 		<ResponseTime_Logging_Period_Length>1000000</ResponseTime_Logging_Period_Length>
+		<Read_Weights>1</Read_Weights>
+		<Write_Weights>1</Write_Weights>
 	</Host_Parameter_Set>
 	<Device_Parameter_Set>
 		<Seed>321</Seed>
@@ -13,19 +14,19 @@
 		<Memory_Type>FLASH</Memory_Type>
 		<HostInterface_Type>NVME</HostInterface_Type>
 		<IO_Queue_Depth>65535</IO_Queue_Depth>
-		<Queue_Fetch_Size>512</Queue_Fetch_Size>
+		<Queue_Fetch_Size>128</Queue_Fetch_Size>
 		<Caching_Mechanism>ADVANCED</Caching_Mechanism>
 		<Data_Cache_Sharing_Mode>SHARED</Data_Cache_Sharing_Mode>
 		<Data_Cache_Capacity>268435456</Data_Cache_Capacity>
 		<Data_Cache_DRAM_Row_Size>8192</Data_Cache_DRAM_Row_Size>
-		<Data_Cache_DRAM_Data_Rate>100</Data_Cache_DRAM_Data_Rate>
-		<Data_Cache_DRAM_Data_Busrt_Size>1</Data_Cache_DRAM_Data_Busrt_Size>
+		<Data_Cache_DRAM_Data_Rate>400</Data_Cache_DRAM_Data_Rate>
+		<Data_Cache_DRAM_Data_Busrt_Size>2</Data_Cache_DRAM_Data_Busrt_Size>
 		<Data_Cache_DRAM_tRCD>13</Data_Cache_DRAM_tRCD>
 		<Data_Cache_DRAM_tCL>13</Data_Cache_DRAM_tCL>
 		<Data_Cache_DRAM_tRP>13</Data_Cache_DRAM_tRP>
 		<Address_Mapping>PAGE_LEVEL</Address_Mapping>
 		<Ideal_Mapping_Table>false</Ideal_Mapping_Table>
-		<CMT_Capacity>2097152</CMT_Capacity>
+		<CMT_Capacity>1097152</CMT_Capacity>
 		<CMT_Sharing_Mode>SHARED</CMT_Sharing_Mode>
 		<Plane_Allocation_Scheme>CWDP</Plane_Allocation_Scheme>
 		<Transaction_Scheduling_Policy>PRIORITY_OUT_OF_ORDER</Transaction_Scheduling_Policy>
@@ -47,14 +48,14 @@
 		<Chip_No_Per_Channel>4</Chip_No_Per_Channel>
 		<Flash_Comm_Protocol>NVDDR2</Flash_Comm_Protocol>
 		<Flash_Parameter_Set>
-			<Flash_Technology>MLC</Flash_Technology>
+			<Flash_Technology>TLC</Flash_Technology>
 			<CMD_Suspension_Support>ERASE</CMD_Suspension_Support>
-			<Page_Read_Latency_LSB>75000</Page_Read_Latency_LSB>
-			<Page_Read_Latency_CSB>75000</Page_Read_Latency_CSB>
-			<Page_Read_Latency_MSB>75000</Page_Read_Latency_MSB>
-			<Page_Program_Latency_LSB>750000</Page_Program_Latency_LSB>
-			<Page_Program_Latency_CSB>750000</Page_Program_Latency_CSB>
-			<Page_Program_Latency_MSB>750000</Page_Program_Latency_MSB>
+			<Page_Read_Latency_LSB>20000</Page_Read_Latency_LSB>
+			<Page_Read_Latency_CSB>20000</Page_Read_Latency_CSB>
+			<Page_Read_Latency_MSB>20000</Page_Read_Latency_MSB>
+			<Page_Program_Latency_LSB>100000</Page_Program_Latency_LSB>
+			<Page_Program_Latency_CSB>100000</Page_Program_Latency_CSB>
+			<Page_Program_Latency_MSB>100000</Page_Program_Latency_MSB>
 			<Block_Erase_Latency>3800000</Block_Erase_Latency>
 			<Block_PE_Cycles_Limit>10000</Block_PE_Cycles_Limit>
 			<Suspend_Erase_Time>700000</Suspend_Erase_Time>
@@ -63,7 +64,7 @@
 			<Plane_No_Per_Die>2</Plane_No_Per_Die>
 			<Block_No_Per_Plane>2048</Block_No_Per_Plane>
 			<Page_No_Per_Block>256</Page_No_Per_Block>
-			<Page_Capacity>8192</Page_Capacity>
+			<Page_Capacity>16384</Page_Capacity>
 			<Page_Metadat_Capacity>448</Page_Metadat_Capacity>
 		</Flash_Parameter_Set>
 	</Device_Parameter_Set>
