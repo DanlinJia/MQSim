@@ -1,3 +1,4 @@
+<?xml version="1.0" encoding="us-ascii"?>
 <Execution_Parameter_Set>
 	<Host_Parameter_Set>
 		<PCIe_Lane_Bandwidth>1.00000</PCIe_Lane_Bandwidth>
@@ -5,8 +6,6 @@
 		<SATA_Processing_Delay>400000</SATA_Processing_Delay>
 		<Enable_ResponseTime_Logging>true</Enable_ResponseTime_Logging>
 		<ResponseTime_Logging_Period_Length>1000000</ResponseTime_Logging_Period_Length>
-		<Read_Weights>1</Read_Weights>
-		<Write_Weights>1</Write_Weights>
 	</Host_Parameter_Set>
 	<Device_Parameter_Set>
 		<Seed>321</Seed>
@@ -14,7 +13,7 @@
 		<Memory_Type>FLASH</Memory_Type>
 		<HostInterface_Type>NVME</HostInterface_Type>
 		<IO_Queue_Depth>65535</IO_Queue_Depth>
-		<Queue_Fetch_Size>128</Queue_Fetch_Size>
+		<Queue_Fetch_Size>512</Queue_Fetch_Size>
 		<Caching_Mechanism>ADVANCED</Caching_Mechanism>
 		<Data_Cache_Sharing_Mode>SHARED</Data_Cache_Sharing_Mode>
 		<Data_Cache_Capacity>268435456</Data_Cache_Capacity>
@@ -26,7 +25,7 @@
 		<Data_Cache_DRAM_tRP>13</Data_Cache_DRAM_tRP>
 		<Address_Mapping>PAGE_LEVEL</Address_Mapping>
 		<Ideal_Mapping_Table>false</Ideal_Mapping_Table>
-		<CMT_Capacity>1097152</CMT_Capacity>
+		<CMT_Capacity>2097152</CMT_Capacity>
 		<CMT_Sharing_Mode>SHARED</CMT_Sharing_Mode>
 		<Plane_Allocation_Scheme>CWDP</Plane_Allocation_Scheme>
 		<Transaction_Scheduling_Policy>PRIORITY_OUT_OF_ORDER</Transaction_Scheduling_Policy>
@@ -43,8 +42,8 @@
 		<Preferred_suspend_erase_time_for_write>700000</Preferred_suspend_erase_time_for_write>
 		<Preferred_suspend_write_time_for_read>100000</Preferred_suspend_write_time_for_read>
 		<Flash_Channel_Count>8</Flash_Channel_Count>
-		<Flash_Channel_Width>1</Flash_Channel_Width>
-		<Channel_Transfer_Rate>333</Channel_Transfer_Rate>
+		<Flash_Channel_Width>2</Flash_Channel_Width>
+		<Channel_Transfer_Rate>400</Channel_Transfer_Rate>
 		<Chip_No_Per_Channel>4</Chip_No_Per_Channel>
 		<Flash_Comm_Protocol>NVDDR2</Flash_Comm_Protocol>
 		<Flash_Parameter_Set>
